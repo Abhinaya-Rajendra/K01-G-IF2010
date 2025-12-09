@@ -24,7 +24,8 @@ public class Main {
             GameWindow window = new GameWindow();
             window.setVisible(true);
             
-            System.out.println("Nimonscooked is Running!");
+            System.out.println("Nimonscooked is Running smoothly!");
+
         });
     }
 }
