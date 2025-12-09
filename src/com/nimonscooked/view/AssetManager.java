@@ -4,6 +4,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,51 +26,69 @@ public class AssetManager {
 
     private void loadAllImages() {
         // 1. Environment
-        load("wall", "resources/images/wall.png");
-        load("floor", "resources/images/floor.png");
+        load("wall", "images/wall.png");
+        load("floor", "images/floor.png");
         
         // 2. Stations Umum
-        load("station_cutting", "resources/images/station_cutting.png");
-        load("station_stove", "resources/images/station_stove.png");
-        load("station_serving", "resources/images/station_serving.png");
-        load("station_assembly", "resources/images/station_assembly.png");
-        load("station_plate", "resources/images/station_plate.png");
-        load("station_wash", "resources/images/station_wash.png");
-        load("station_trash", "resources/images/station_trash.png");
+        load("station_cutting", "images/station_cutting.png");
+        load("station_stove", "images/station_stove.png");
+        load("station_serving", "images/station_serving.png");
+        load("station_assembly", "images/station_assembly.png");
+        load("station_plate", "images/station_plate.png");
+        load("station_wash", "images/station_wash.png");
+        load("station_trash", "images/station_trash.png");
 
         // 3. Storage Spesifik (Pastikan nama file PNG sesuai dengan Enum IngredientType)
-        load("storage_PASTA", "resources/images/storage_PASTA.png");
-        load("storage_TOMATO", "resources/images/storage_TOMATO.png");
-        load("storage_MEAT", "resources/images/storage_MEAT.png");
-        load("storage_SHRIMP", "resources/images/storage_SHRIMP.png");
-        load("storage_FISH", "resources/images/storage_FISH.png");
+        load("storage_PASTA", "images/storage_PASTA.png");
+        load("storage_TOMATO", "images/storage_TOMATO.png");
+        load("storage_MEAT", "images/storage_MEAT.png");
+        load("storage_SHRIMP", "images/storage_SHRIMP.png");
+        load("storage_FISH", "images/storage_FISH.png");
         
         // 4. Entities & Items
-        load("chef", "resources/images/chef.png");
-        load("pot", "resources/images/pot.png");
-        load("pan", "resources/images/pan.png");
-        load("plate", "resources/images/plate.png");
+        load("chef", "images/chef.png");
+        load("pot", "images/pot.png");
+        load("pan", "images/pan.png");
+        load("plate", "images/plate.png");
         
         // Item default (tomatcherry/bola merah)
-        load("item_default", "resources/images/item_tomato.png");
+        load("item_default", "images/item_tomato.png");
         
         // Item spesifik (Jika Anda punya gambarnya, aktifkan baris ini)
-        // load("item_tomato", "resources/images/item_tomato.png");
-        // load("item_pasta", "resources/images/item_pasta.png");
+        // load("item_tomato", "images/item_tomato.png");
+        // load("item_pasta", "images/item_pasta.png");
     }
 
     private void load(String name, String path) {
+        // path seharusnya adalah "images/nama_file.png"
+        InputStream is = null; 
+        
         try {
-            File file = new File(path);
-            if (file.exists()) {
-                BufferedImage img = ImageIO.read(file);
+            // 1. Dapatkan InputStream menggunakan Class Loader
+            // Kami menggunakan "/" + path untuk mencari dari root classpath (folder resources kamu)
+            is = getClass().getResourceAsStream("/" + path);
+            
+            if (is != null) {
+                // 2. Baca gambar dari InputStream
+                BufferedImage img = ImageIO.read(is);
                 images.put(name, img);
+                System.out.println("✅ Gambar berhasil dimuat: " + path);
             } else {
-                // Jangan error, cukup print info agar kita tahu gambar mana yang hilang
-                System.out.println("⚠️ Image not found: " + path + " (Will use fallback color)");
+                // Pesan jika Class Loader tidak menemukan file
+                System.out.println("⚠️ Image not found in classpath: " + path);
             }
         } catch (IOException e) {
-            System.err.println("Error loading image: " + path);
+            System.err.println("Error reading image data for: " + path);
+            e.printStackTrace();
+        } finally {
+            // Selalu tutup InputStream untuk menghindari kebocoran sumber daya
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    // Abaikan error saat menutup stream
+                }
+            }
         }
     }
 

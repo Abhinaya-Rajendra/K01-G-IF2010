@@ -25,7 +25,7 @@ public class Main {
             window.setVisible(true);
             
             System.out.println("Nimonscooked is Running!");
-
+            
         });
     }
 }

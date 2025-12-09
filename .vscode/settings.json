@@ -1,0 +1,8 @@
+{
+    // Tambahkan atau ubah bagian ini:
+    "java.project.sourcePaths": [
+        "src",
+        "resources"  // <--- PASTIKAN BARIS INI ADA!
+    ],
+  
+}
