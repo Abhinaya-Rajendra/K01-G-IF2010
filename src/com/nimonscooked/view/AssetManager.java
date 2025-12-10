@@ -56,6 +56,20 @@ public class AssetManager {
         // Item spesifik (Jika Anda punya gambarnya, aktifkan baris ini)
         // load("item_tomato", "resources/images/item_tomato.png");
         // load("item_pasta", "resources/images/item_pasta.png");
+        // --- TAMBAHAN BARU UNTUK UI ---
+        load("ui_coin", "resources/images/ui_coin.png");   // Icon Koin
+        load("ui_timer", "resources/images/ui_timer.png"); // Icon Jam
+        load("ui_card", "resources/images/ui_card.png");   // Background kartu order (opsional)
+
+        // Ikon Bahan Kecil (Untuk di kartu order)
+        load("icon_PASTA", "resources/images/icon_pasta.png");
+        load("icon_TOMATO", "resources/images/icon_tomato.png");
+        load("icon_MEAT", "resources/images/icon_meat.png");
+        // ... dst
+        
+        // Ikon Dish Hasil Jadi (Untuk di kartu order)
+        load("dish_Pasta Marinara", "resources/images/dish_marinara.png");
+        // ... dst sesuaikan nama resep
     }
 
     private void load(String name, String path) {

@@ -3,7 +3,7 @@ package com.nimonscooked.model.logic;
 import com.nimonscooked.core.GameObserver;
 import com.nimonscooked.model.entities.Chef;
 import com.nimonscooked.model.entities.Projectile;
-import com.nimonscooked.model.stations.PlateStorage; // Import baru
+import com.nimonscooked.model.stations.PlateStorage;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,6 +26,18 @@ public class GameModel {
     private long lastTickTime = 0;
     private long gameStartTime;
 
+    // --- GAME OVER & STAGE LOGIC ---
+    private boolean isGameOver = false;
+    private boolean isStagePassed = false;
+    private int failedOrdersCount = 0;
+    private final int MAX_FAILED_ORDERS = 5; 
+    private final int GAME_DURATION_LIMIT = 180; // 3 Menit
+    
+    // Stage Settings
+    private int currentStageId = 1;
+    private int targetScore = 0;
+    // -------------------------------
+
     private List<PendingPlate> pendingPlates;
     private List<PlateStorage> plateStorages; 
 
@@ -37,29 +49,20 @@ public class GameModel {
     }
 
     private GameModel() {
-        // PERBAIKAN: Initialize Map DULU
-        this.map = new Map();
+        // Init awal (Default Stage 1)
         this.gameStartTime = System.currentTimeMillis(); 
-        
         this.observers = new ArrayList<>();
         this.projectiles = new ArrayList<>();
         this.orderManager = new OrderManager();
         this.pendingPlates = new ArrayList<>();
         this.plateStorages = new ArrayList<>();
-        
-        // Spawn 2 Chef
         this.chefs = new ArrayList<>();
-        chefs.add(new Chef(2, 4)); 
-        chefs.add(new Chef(11, 4)); 
         
-        // Game Loop (50ms)
+        // Setup Map Default
+        resetGame(1);
+        
         this.gameLoop = new Timer(50, e -> updateGame());
         this.gameLoop.start();
-        
-        // **********************************************
-        // PENTING: PANGGIL INIT MAP dan DAFTARKAN STORAGE di sini, setelah model dibuat!
-        // **********************************************
-        this.map.registerStations(this); // Map akan mendaftarkan semua Station, termasuk PlateStorage
         
         System.out.println("GameModel Initialized.");
     }
@@ -67,32 +70,103 @@ public class GameModel {
     public static GameModel getInstance() {
         if (instance == null) {
             instance = new GameModel();
-            // *PENTING*: JANGAN lakukan init di sini. Lakukan di constructor.
         }
         return instance;
     }
 
     public long getGameDuration() {
-    long elapsedMillis = System.currentTimeMillis() - gameStartTime;
-    return elapsedMillis / 1000; // Kembalikan dalam detik
+        if (isGameOver) {
+            long elapsed = (System.currentTimeMillis() - gameStartTime) / 1000;
+            return Math.min(elapsed, GAME_DURATION_LIMIT); 
+        }
+        long elapsedMillis = System.currentTimeMillis() - gameStartTime;
+        return elapsedMillis / 1000; 
     }
 
-    // Dipanggil oleh Map saat inisialisasi untuk mendaftarkan PlateStorage
     public void registerPlateStorage(PlateStorage ps) {
         this.plateStorages.add(ps);
-        ps.initPlates(); // Inisialisasi piring HANYA SETELAH didaftarkan
+        ps.initPlates(); 
     }
     
     public void returnPlateLater() {
         long returnTime = System.currentTimeMillis() + 10000;
         pendingPlates.add(new PendingPlate(returnTime));
-        System.out.println("Plate will return in 10 seconds...");
     }
 
+    // --- LOGIC GAME OVER / STAGE ---
+    public void addFailedOrder() {
+        if (isGameOver) return;
+        
+        this.failedOrdersCount++;
+        notifyObservers(); 
+        
+        if (failedOrdersCount >= MAX_FAILED_ORDERS) {
+            finishGame(false); 
+        }
+    }
+    
+    private void checkTimeLimit() {
+        if (getGameDuration() >= GAME_DURATION_LIMIT) {
+            boolean passed = (score >= targetScore);
+            finishGame(passed);
+        }
+    }
+    
+    private void finishGame(boolean passed) {
+        isGameOver = true;
+        isStagePassed = passed;
+        System.out.println("GAME OVER. Status: " + (passed ? "PASSED" : "FAILED"));
+        notifyObservers(); 
+    }
+    
+    public void resetGame(int stageId) {
+        this.isGameOver = false;
+        this.isStagePassed = false;
+        this.failedOrdersCount = 0;
+        this.currentStageId = stageId;
+        
+        // --- STAGE CONFIGURATION ---
+        boolean isRandomMap = false;
+        if (stageId == 1) {
+            this.targetScore = 150; 
+            isRandomMap = false;
+        } else if (stageId == 2) {
+            this.targetScore = 300; 
+            isRandomMap = true;
+        }
+        
+        // Buat Map Baru
+        this.map = new Map(isRandomMap);
+        this.gameStartTime = System.currentTimeMillis();
+        
+        this.chefs.clear();
+        this.chefs.add(new Chef(2, 4));
+        this.chefs.add(new Chef(11, 4));
+        this.activeChefIndex = 0;
+        
+        this.projectiles.clear();
+        this.pendingPlates.clear(); 
+        this.plateStorages.clear(); 
+        
+        this.map.registerStations(this); 
+        
+        this.score = 0;
+        this.orderManager = new OrderManager();
+        notifyObservers();
+    }
+    
+    public boolean isGameOver() { return isGameOver; }
+    public boolean isStagePassed() { return isStagePassed; }
+    public int getTargetScore() { return targetScore; }
+    public int getCurrentStageId() { return currentStageId; }
+    public int getFailedOrdersCount() { return failedOrdersCount; }
+    public int getMaxFailedOrders() { return MAX_FAILED_ORDERS; }
+
     private void updateGame() {
+        if (isGameOver) return; 
         if (map == null) return;
         
-        // ... (Logika updateGame tetap sama) ...
+        checkTimeLimit(); 
         
         if (!projectiles.isEmpty()) {
             Iterator<Projectile> it = projectiles.iterator();
@@ -121,9 +195,7 @@ public class GameModel {
                 PendingPlate pp = it.next();
                 if (currentTime >= pp.returnTime) {
                     if (!plateStorages.isEmpty()) {
-                        // Default: Masuk ke storage pertama
                         plateStorages.get(0).addDirtyPlate();
-                        System.out.println("A dirty plate has returned to storage!");
                     }
                     it.remove();
                     notifyObservers();
@@ -143,7 +215,6 @@ public class GameModel {
         return chefs.get(activeChefIndex);
     }
     
-    // Getters & Setters
     public List<Chef> getChefs() { return chefs; }
     public Map getMap() { return map; }
     public void addObserver(GameObserver observer) { observers.add(observer); }
@@ -151,28 +222,6 @@ public class GameModel {
     public OrderManager getOrderManager() { return orderManager; }
     public int getScore() { return score; }
     public void addScore(int points) { this.score += points; notifyObservers(); }
-    
-    public void resetGame(boolean randomMap) {
-        // PERBAIKAN: Gunakan constructor Map(randomMap)
-        this.map = new Map(randomMap);
-        this.gameStartTime = System.currentTimeMillis();
-        
-        this.chefs.clear();
-        this.chefs.add(new Chef(2, 4));
-        this.chefs.add(new Chef(11, 4));
-        this.activeChefIndex = 0;
-        this.projectiles.clear();
-        this.pendingPlates.clear(); 
-        this.plateStorages.clear(); 
-        
-        // PERBAIKAN: Panggil registerStations di Map BARU
-        this.map.registerStations(this); 
-        
-        this.score = 0;
-        this.orderManager = new OrderManager();
-        notifyObservers();
-    }
-    
     public void addProjectile(Projectile p) { projectiles.add(p); }
     public List<Projectile> getProjectiles() { return projectiles; }
 }

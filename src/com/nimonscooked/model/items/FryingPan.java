@@ -9,7 +9,7 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     private boolean isCooking = false;
     private int progress = 0;
     private long startTime;
-    private long totalElapsedTime = 0; // TAMBAHKAN INI
+    private long totalElapsedTime = 0; 
     
     private final int TIME_TO_COOK = 12000; 
     private final int TIME_TO_BURN = 24000;
@@ -30,12 +30,8 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
         
         if (item instanceof Ingredient) {
             Ingredient ing = (Ingredient) item;
-            IngredientType t = ing.getType();
-            
-            // Frying Pan biasanya menolak PASTA/RICE
-            if (t == IngredientType.PASTA || t == IngredientType.RICE) return false;
-
-            // Frying Pan hanya menerima CHOPPED
+            // Hanya terima CHOPPED (selain pasta/rice)
+            if (ing.getType() == IngredientType.PASTA || ing.getType() == IngredientType.RICE) return false;
             return (ing.getState() instanceof ChoppedState);
         }
         return false;
@@ -45,7 +41,7 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     public void addIngredient(Preparable ingredient) {
         if (canAccept(ingredient)) {
             contents.add(ingredient);
-            this.totalElapsedTime = 0; // WAJIB RESET TIMER LAMA
+            this.totalElapsedTime = 0; 
             startCooking(); 
         }
     }
@@ -53,21 +49,17 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     @Override
     public void startCooking() {
         if (isCooking || contents.isEmpty()) return;
-    
+        
         isCooking = true;
-        // --- PERBAIKAN START TIME ---
-        // Waktu mulai sekarang = Waktu saat ini - Waktu yang sudah terlewat sebelumnya
         startTime = System.currentTimeMillis() - totalElapsedTime;
         
         cookingThread = new Thread(() -> {
             try {
                 System.out.println("Frying started...");
                 while (isCooking) {
-                    
-                    // 🔥 FIX ERROR: CEK JIKA ISI SUDAH KOSONG 🔥
                     if (contents.isEmpty()) { 
-                        stopCooking(); // Hentikan thread jika bahan sudah diambil/dituang
-                        return; // Keluar dari loop thread
+                        stopCooking(); 
+                        return; 
                     }
                     
                     long elapsed = System.currentTimeMillis() - startTime;
@@ -95,12 +87,8 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
 
     @Override
     public void stopCooking() {
-        if (!isCooking) return; // Penting: Hanya lakukan jika sedang memasak
-        
-        // --- PERBAIKAN STOP TIME ---
-        // Simpan total waktu yang sudah terlewat
+        if (!isCooking) return;
         totalElapsedTime = System.currentTimeMillis() - startTime; 
-        
         isCooking = false;
         progress = 0;
     }

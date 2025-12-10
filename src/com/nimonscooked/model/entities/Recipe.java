@@ -1,6 +1,6 @@
 package com.nimonscooked.model.entities;
 
-import com.nimonscooked.core.Preparable; // Jangan lupa import ini
+import com.nimonscooked.core.Preparable;
 import com.nimonscooked.model.items.Ingredient;
 import com.nimonscooked.model.items.KitchenUtensil;
 import com.nimonscooked.utils.IngredientType;
@@ -24,48 +24,41 @@ public class Recipe {
         return name;
     }
 
-    // Cek apakah isi panci/piring sesuai dengan resep ini
+    // --- TAMBAHAN BARU: Getter untuk UI ---
+    public List<IngredientType> getRequiredIngredients() {
+        return requiredIngredients;
+    }
+    // --------------------------------------
+
     public boolean matches(KitchenUtensil utensil) {
         if (utensil == null) return false;
         
-        // PERBAIKAN 1: Ubah tipe data variabel penampung jadi List<Preparable>
-        // Sesuai dengan return type dari utensil.getContents()
         List<Preparable> contents = utensil.getContents();
 
-        // 1. Cek Jumlah Bahan
         if (contents.size() != requiredIngredients.size()) return false;
 
-        // 2. Cek Apakah Semua Bahan MATANG (COOKED)?
-        // PERBAIKAN 2: Loop menggunakan Preparable, lalu di-cast ke Ingredient
         for (Preparable item : contents) {
-            // Pastikan item adalah Ingredient sebelum dicek
             if (item instanceof Ingredient) {
-                Ingredient ing = (Ingredient) item; // Casting
-                
+                Ingredient ing = (Ingredient) item; 
                 if (!ing.getState().getName().equals("COOKED")) {
-                    return false; // Ada yang belum matang
+                    return false; 
                 }
             } else {
-                return false; // Item bukan bahan makanan (misal batu/sampah)
+                return false; 
             }
         }
 
-        // 3. Cek Kecocokan Jenis Bahan
         List<IngredientType> checklist = new ArrayList<>(requiredIngredients);
-        
         for (Preparable item : contents) {
             if (item instanceof Ingredient) {
-                Ingredient ing = (Ingredient) item; // Casting lagi
-                
+                Ingredient ing = (Ingredient) item;
                 if (checklist.contains(ing.getType())) {
-                    checklist.remove(ing.getType()); // Centang bahan ini
+                    checklist.remove(ing.getType()); 
                 } else {
-                    return false; // Bahan salah (tidak ada di resep)
+                    return false; 
                 }
             }
         }
-
-        // Jika checklist kosong, berarti semua bahan cocok
         return checklist.isEmpty();
     }
 }
