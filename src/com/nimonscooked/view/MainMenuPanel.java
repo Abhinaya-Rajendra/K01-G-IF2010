@@ -61,8 +61,8 @@ public class MainMenuPanel extends JPanel {
         // Gambar latar belakang
         if (backgroundImage != null) {
             Graphics2D g2d = (Graphics2D) g.create();
-            int panelWidth = 900;
-            int panelHeight = 1000;
+            int panelWidth = 800;
+            int panelHeight = 800;
             int x = (getWidth() - panelWidth) / 2;
             int y = (getHeight() - panelHeight) / 2;
             // Skala gambar agar sesuai dengan ukuran panel

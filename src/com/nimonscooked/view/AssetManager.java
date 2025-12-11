@@ -67,7 +67,7 @@ public class AssetManager {
         load("icon_TOMATO", "resources/images/icon_tomato.png");
         load("icon_MEAT", "resources/images/icon_meat.png");
 
-        load("main_menu", "images/main_menu/main_menu.png");
+        load("main_menu", "images/main_menu/bgMenu.png");
         // ... dst
         
         // Ikon Dish Hasil Jadi (Untuk di kartu order)
