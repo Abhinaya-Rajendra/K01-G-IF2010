@@ -68,6 +68,7 @@ public class AssetManager {
         load("icon_MEAT", "resources/images/icon_meat.png");
 
         load("main_menu", "images/main_menu/bgMenu.png");
+        load("bg", "images/main_menu/bg.png");
         // ... dst
         
         // Ikon Dish Hasil Jadi (Untuk di kartu order)
@@ -77,6 +78,14 @@ public class AssetManager {
         load("start", "images/main_menu/start_game(1).png");
         load("help", "images/main_menu/how_to_play(1).png");
         load("exit", "images/main_menu/exit(1).png");
+
+        load("startHover", "images/main_menu/start_game(2).png");
+        load("helpHover", "images/main_menu/how_to_play(2).png");
+        load("exitHover", "images/main_menu/exit(2).png");
+
+        load("startPressed", "images/main_menu/start_game(3).png");
+        load("helpPressed", "images/main_menu/how_to_play(3).png");
+        load("exitPressed", "images/main_menu/exit(3).png");
 
     }
 

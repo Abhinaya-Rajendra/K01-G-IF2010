@@ -13,6 +13,7 @@ public class MainMenuPanel extends JPanel {
     
     // Variabel untuk menyimpan gambar latar belakang
     private BufferedImage backgroundImage; 
+    private BufferedImage bg;
 
     
     // Path gambar (Asumsi: resources/images/background.png)
@@ -20,6 +21,7 @@ public class MainMenuPanel extends JPanel {
 
     public MainMenuPanel(Runnable goToStageSelect) {
         backgroundImage = AssetManager.getInstance().getImage("main_menu");
+        bg = AssetManager.getInstance().getImage("bg");
         
 
 
@@ -37,21 +39,21 @@ public class MainMenuPanel extends JPanel {
         // Buat komponen kosong (spacer) dengan tinggi 50 piksel
         JLabel spacer = new JLabel();
         // Anda bisa menyesuaikan tinggi (misalnya 50, 80, 100)
-        spacer.setPreferredSize(new Dimension(1, 120)); 
+        spacer.setPreferredSize(new Dimension(1, 250)); 
         add(spacer, gbc);
         gbc.gridy++;
         // Gantilah ini: startButton = createButton("Start Game"); 
-        startButton = createButton("start", () -> goToStageSelect.run(), 380, 100); 
+        startButton = createButton("start","startHover", "startPressed", () -> goToStageSelect.run(), 380, 100); 
         add(startButton, gbc);
 
         gbc.gridy++;
         // Gantilah ini: helpButton = createButton("How to Play");
-        helpButton = createButton("help", () -> showHelpDialog(), 380, 100); 
+        helpButton = createButton("help", "helpHover", "helpPressed",() -> showHelpDialog(), 380, 100); 
         add(helpButton, gbc);
 
         gbc.gridy++;
         // Gantilah ini: exitButton = createButton("Exit");
-        exitButton = createButton("exit", () -> System.exit(0), 380, 100);
+        exitButton = createButton("exit", "exitHover", "exitPressed",() -> System.exit(0), 380, 100);
         add(exitButton, gbc);
     }
 
@@ -59,14 +61,18 @@ public class MainMenuPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         // Gambar latar belakang
+        if(bg != null){
+            g.drawImage(bg, 0, 0, getWidth(), getHeight(), this);
+        }
         if (backgroundImage != null) {
             Graphics2D g2d = (Graphics2D) g.create();
-            int panelWidth = 800;
-            int panelHeight = 800;
+            int panelWidth = 900;
+            int panelHeight = 900;
             int x = (getWidth() - panelWidth) / 2;
             int y = (getHeight() - panelHeight) / 2;
             // Skala gambar agar sesuai dengan ukuran panel
             g.drawImage(backgroundImage, x, y+25, panelWidth, panelHeight, this);
+            
         }
     }
     private void showHelpDialog() {
@@ -94,27 +100,61 @@ public class MainMenuPanel extends JPanel {
             "Game Guide", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private JButton createButton(String assetName, Runnable action, int targetWidth, int targetHeight) {
-        // 1. Dapatkan Gambar dari AssetManager
-    BufferedImage iconImg = AssetManager.getInstance().getImage(assetName);
-        // 2. Buat Ikon dari Gambar
-    Image scaledImage = iconImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
-    ImageIcon icon = new ImageIcon(scaledImage);
+    // Di dalam class MainMenuPanel
 
-    // 3. Setup Tombol
-    JButton btn = new JButton(icon); 
+private JButton createButton(String defaultAsset, 
+                                 String hoverAsset, 
+                                 String pressedAsset, 
+                                 Runnable action,
+                                 int targetWidth, 
+                                 int targetHeight) {
     
-    // ** PENTING UNTUK TOMBOL GAMBAR **
-    btn.setBorderPainted(false); // Hapus bingkai di sekitar tombol
-    btn.setContentAreaFilled(false); // Hapus area latar belakang tombol
-    btn.setFocusPainted(false); // Hapus fokus (garis kotak saat diklik)
+    BufferedImage defaultImg = AssetManager.getInstance().getImage(defaultAsset);
+    BufferedImage hoverImg = AssetManager.getInstance().getImage(hoverAsset);
+    BufferedImage pressedImg = AssetManager.getInstance().getImage(pressedAsset);
     
-    // Opsional: atur ukuran tombol berdasarkan ukuran gambar
-    btn.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+    if (defaultImg == null) {
+        // ... (Kode fallback tetap ada)
+        return new JButton(defaultAsset); 
+    }
     
+    // --- LANGKAH PENTING: SKALA SEMUA GAMBAR SECARA TERPISAH ---
+
+    // 1. Skala Gambar Default dan buat Icon
+    Image scaledDefault = defaultImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+    ImageIcon defaultIcon = new ImageIcon(scaledDefault);
+    
+    JButton btn = new JButton(defaultIcon); 
+    
+    // 2. Skala Gambar Hover dan atur RolloverIcon
+    if (hoverImg != null) {
+        Image scaledHover = hoverImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+        ImageIcon hoverIcon = new ImageIcon(scaledHover);
+        btn.setRolloverIcon(hoverIcon); 
+    }
+    
+    // 3. Skala Gambar Pressed dan atur PressedIcon
+    if (pressedImg != null) {
+        Image scaledPressed = pressedImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+        ImageIcon pressedIcon = new ImageIcon(scaledPressed);
+        btn.setPressedIcon(pressedIcon); 
+    }
+    
+    // --- PENGATURAN UKURAN KETAT ---
+    
+    btn.setBorderPainted(false); 
+    btn.setContentAreaFilled(false); 
+    btn.setFocusPainted(false); 
+    
+    
+    Dimension fixedSize = new Dimension(targetWidth, targetHeight);
+    btn.setPreferredSize(fixedSize); 
+    btn.setMinimumSize(fixedSize); 
+    btn.setMaximumSize(fixedSize); 
+
     btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     btn.addActionListener(e -> action.run());
     
     return btn;
-    }
+}
 }
