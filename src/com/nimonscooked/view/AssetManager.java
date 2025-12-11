@@ -2,8 +2,9 @@ package com.nimonscooked.view;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
+// import java.io.File; // <-- HAPUS INI
 import java.io.IOException;
+import java.io.InputStream; // <-- TAMBAHKAN INI
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,25 +66,47 @@ public class AssetManager {
         load("icon_PASTA", "resources/images/icon_pasta.png");
         load("icon_TOMATO", "resources/images/icon_tomato.png");
         load("icon_MEAT", "resources/images/icon_meat.png");
+
+        load("main_menu", "images/main_menu/main_menu.png");
         // ... dst
         
         // Ikon Dish Hasil Jadi (Untuk di kartu order)
         load("dish_Pasta Marinara", "resources/images/dish_marinara.png");
         // ... dst sesuaikan nama resep
+
+        load("start", "images/main_menu/start_game(1).png");
+        load("help", "images/main_menu/how_to_play(1).png");
+        load("exit", "images/main_menu/exit(1).png");
+
     }
 
     private void load(String name, String path) {
+        InputStream is = null;
         try {
-            File file = new File(path);
-            if (file.exists()) {
-                BufferedImage img = ImageIO.read(file);
+            // Menggunakan Class Loader untuk memuat sumber daya dari classpath
+            // path sekarang adalah "images/..."
+            is = getClass().getResourceAsStream("/" + path);
+            
+            if (is != null) {
+                BufferedImage img = ImageIO.read(is);
                 images.put(name, img);
+                System.out.println("✅ Loaded: " + path);
             } else {
-                // Jangan error, cukup print info agar kita tahu gambar mana yang hilang
-                System.out.println("⚠️ Image not found: " + path + " (Will use fallback color)");
+                // Beri tahu jika Class Loader tidak menemukan
+                System.out.println("⚠️ Image not found in classpath: " + path);
             }
         } catch (IOException e) {
-            System.err.println("Error loading image: " + path);
+            System.err.println("Error reading image data for: " + path);
+            e.printStackTrace();
+        } finally {
+            // Selalu tutup InputStream
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
         }
     }
 

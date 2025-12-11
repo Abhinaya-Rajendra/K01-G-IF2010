@@ -25,7 +25,7 @@ public class GamePanel extends JPanel implements GameObserver {
 
     private GameModel model;
     private AssetManager assets;
-    private final int TILE_SIZE = 50;
+    private final int TILE_SIZE = 100;
     private final int BLOCK_HEIGHT = 15; 
 
     public GamePanel() {

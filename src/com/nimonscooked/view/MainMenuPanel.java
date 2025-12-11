@@ -2,46 +2,73 @@ package com.nimonscooked.view;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+
 
 public class MainMenuPanel extends JPanel {
 
     private JButton startButton;
     private JButton exitButton;
     private JButton helpButton;
+    
+    // Variabel untuk menyimpan gambar latar belakang
+    private BufferedImage backgroundImage; 
+
+    
+    // Path gambar (Asumsi: resources/images/background.png)
+    // private static final String BACKGROUND_IMAGE_PATH = "images/menu_bg.png";
 
     public MainMenuPanel(Runnable goToStageSelect) {
+        backgroundImage = AssetManager.getInstance().getImage("main_menu");
+        
+
+
+
         setLayout(new GridBagLayout());
         setBackground(new Color(40, 40, 40)); 
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(15, 15, 15, 15);
+        gbc.insets = new Insets(0, 15, 0, 15);
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.CENTER;
-
-        // TITLE
-        JLabel titleLabel = new JLabel("NIMONSCOOKED");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 50));
-        titleLabel.setForeground(Color.ORANGE);
-        add(titleLabel, gbc);
-
         // BUTTONS
+        gbc.gridy++; // Pindah ke Baris berikutnya (Baris 1)
+        // Buat komponen kosong (spacer) dengan tinggi 50 piksel
+        JLabel spacer = new JLabel();
+        // Anda bisa menyesuaikan tinggi (misalnya 50, 80, 100)
+        spacer.setPreferredSize(new Dimension(1, 120)); 
+        add(spacer, gbc);
         gbc.gridy++;
-        startButton = createButton("Start Game");
-        startButton.addActionListener(e -> goToStageSelect.run());
+        // Gantilah ini: startButton = createButton("Start Game"); 
+        startButton = createButton("start", () -> goToStageSelect.run(), 380, 100); 
         add(startButton, gbc);
 
         gbc.gridy++;
-        helpButton = createButton("How to Play");
-        helpButton.addActionListener(e -> showHelpDialog());
+        // Gantilah ini: helpButton = createButton("How to Play");
+        helpButton = createButton("help", () -> showHelpDialog(), 380, 100); 
         add(helpButton, gbc);
 
         gbc.gridy++;
-        exitButton = createButton("Exit");
-        exitButton.addActionListener(e -> System.exit(0));
+        // Gantilah ini: exitButton = createButton("Exit");
+        exitButton = createButton("exit", () -> System.exit(0), 380, 100);
         add(exitButton, gbc);
     }
 
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        // Gambar latar belakang
+        if (backgroundImage != null) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            int panelWidth = 900;
+            int panelHeight = 1000;
+            int x = (getWidth() - panelWidth) / 2;
+            int y = (getHeight() - panelHeight) / 2;
+            // Skala gambar agar sesuai dengan ukuran panel
+            g.drawImage(backgroundImage, x, y+25, panelWidth, panelHeight, this);
+        }
+    }
     private void showHelpDialog() {
         JOptionPane.showMessageDialog(this, 
             "<html><body style='width: 300px;'>" +
@@ -67,14 +94,27 @@ public class MainMenuPanel extends JPanel {
             "Game Guide", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private JButton createButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Arial", Font.BOLD, 20));
-        btn.setPreferredSize(new Dimension(300, 60));
-        btn.setFocusPainted(false);
-        btn.setBackground(Color.WHITE);
-        btn.setForeground(Color.BLACK);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
+    private JButton createButton(String assetName, Runnable action, int targetWidth, int targetHeight) {
+        // 1. Dapatkan Gambar dari AssetManager
+    BufferedImage iconImg = AssetManager.getInstance().getImage(assetName);
+        // 2. Buat Ikon dari Gambar
+    Image scaledImage = iconImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+    ImageIcon icon = new ImageIcon(scaledImage);
+
+    // 3. Setup Tombol
+    JButton btn = new JButton(icon); 
+    
+    // ** PENTING UNTUK TOMBOL GAMBAR **
+    btn.setBorderPainted(false); // Hapus bingkai di sekitar tombol
+    btn.setContentAreaFilled(false); // Hapus area latar belakang tombol
+    btn.setFocusPainted(false); // Hapus fokus (garis kotak saat diklik)
+    
+    // Opsional: atur ukuran tombol berdasarkan ukuran gambar
+    btn.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+    
+    btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    btn.addActionListener(e -> action.run());
+    
+    return btn;
     }
 }
