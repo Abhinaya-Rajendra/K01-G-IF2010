@@ -7,7 +7,6 @@ import com.nimonscooked.model.items.Ingredient;
 import com.nimonscooked.model.items.KitchenUtensil;
 
 public class CookingStation extends Station {
-    // Station ini menyimpan alat masak (Panci/Wajan)
     private CookingDevice device;
 
     public CookingStation(int x, int y) {
@@ -18,7 +17,6 @@ public class CookingStation extends Station {
         return device;
     }
 
-    // Untuk inisialisasi awal map (menaruh panci di kompor)
     public void setDevice(CookingDevice device) {
         this.device = device;
     }
@@ -34,47 +32,37 @@ public class CookingStation extends Station {
                 Ingredient ing = (Ingredient) chef.getInventory().getItem();
                 
                 if (device.canAccept(ing)) {
-                    // FIX 1: Lakukan Casting ke (Preparable) karena takeItem() mengembalikan Item
                     device.addIngredient((Preparable) chef.getInventory().takeItem());
+                    System.out.println("Added ingredient to pot/pan.");
                 } else {
                     System.out.println("Cannot add ingredient (Full or Invalid)");
                 }
             }
-            // 1B. Chef tangan kosong
+            // 1B. Chef tangan kosong -> AMBIL ALAT MASAK (PICK UP)
             else if (chef.getInventory().isEmpty()) {
-                // Jika Alat Masak ada isinya -> NYALAKAN KOMPOR (Masak)
-                if (!utensil.isEmpty()) {
-                    // Cek apakah isinya sudah matang? (Cek isi pertama)
-                    // FIX 2: Lakukan Casting ke (Ingredient) karena getContents() mengembalikan List<Preparable>
-                    Ingredient firstIng = (Ingredient) utensil.getContents().get(0);
-                    
-                    // Logic sederhana: Kalau masih bisa dimasak (Raw/Chopped) -> Masak
-                    if (firstIng.canBeCooked()) {
-                        device.startCooking();
-                    } 
-                    // Kalau sudah matang (Cooked) -> Ambil Panci-nya
-                    else {
-                        chef.getInventory().setItem(utensil);
-                        this.device = null; // Panci diambil chef
-                        System.out.println("Took the cooking utensil.");
-                    }
-                } else {
-                    // Panci kosong -> Ambil Panci-nya
-                    chef.getInventory().setItem(utensil);
-                    this.device = null;
-                    System.out.println("Took empty utensil.");
-                }
+                
+                // --- PERBAIKAN PENTING: STOP COOKING SAAT DIAMBIL ---
+                device.stopCooking(); 
+                // ----------------------------------------------------
+
+                chef.getInventory().setItem(utensil);
+                this.device = null; 
+                System.out.println("Took the cooking utensil (Cooking Paused).");
             }
         }
-        // KASUS 2: Station Kosong (Tidak ada Panci)
+        // KASUS 2: Station Kosong (Menaruh Panci)
         else {
-            // Chef bawa Panci/Wajan -> Taruh di Kompor
             if (!chef.getInventory().isEmpty() && chef.getInventory().getItem() instanceof CookingDevice) {
                 this.device = (CookingDevice) chef.getInventory().takeItem();
-                // Kosongkan tangan chef setelah menaruh (takeItem sudah mengosongkan, tapi baris di bawah ini redundant jika takeItem sudah dipanggil di dalam cast)
-                // chef.getInventory().takeItem();  <-- HAPUS baris ini karena takeItem() di atas sudah mengambil barangnya.
                 
-                System.out.println("Placed utensil on stove.");
+                // --- PERBAIKAN PENTING: AUTO RESUME SAAT DITARUH ---
+                // Jika panci ada isinya, lanjutkan memasak otomatis
+                if (this.device instanceof KitchenUtensil && !((KitchenUtensil)this.device).isEmpty()) {
+                    this.device.startCooking();
+                    System.out.println("Placed utensil on stove (Cooking Resumed).");
+                } else {
+                    System.out.println("Placed empty utensil on stove.");
+                }
             }
         }
     }

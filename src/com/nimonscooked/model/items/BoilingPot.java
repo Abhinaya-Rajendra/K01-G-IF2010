@@ -9,7 +9,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     private boolean isCooking = false;
     private int progress = 0; 
     private long startTime;
-    private long totalElapsedTime = 0; // TAMBAHKAN INI
+    private long totalElapsedTime = 0; // Menyimpan waktu yang sudah berjalan sebelum dipause
     
     private final int TIME_TO_COOK = 12000; 
     private final int TIME_TO_BURN = 24000; 
@@ -18,17 +18,11 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         super("Boiling Pot");
     }
 
-    // --- IMPLEMENTASI COOKING DEVICE ---
+    @Override
+    public boolean isPortable() { return true; }
 
     @Override
-    public boolean isPortable() {
-        return true; 
-    }
-
-    @Override
-    public int capacity() {
-        return 1; 
-    }
+    public int capacity() { return 1; }
 
     @Override
     public boolean canAccept(Preparable item) {
@@ -37,7 +31,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         if (item instanceof Ingredient) {
             Ingredient ing = (Ingredient) item;
             IngredientType type = ing.getType();
-            
+            // Hanya terima Pasta / Rice
             return (type == IngredientType.PASTA || type == IngredientType.RICE);
         }
         return false;
@@ -47,53 +41,50 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     public void addIngredient(Preparable ingredient) {
         if (canAccept(ingredient)) {
             contents.add(ingredient);
-            this.totalElapsedTime = 0; // WAJIB RESET TIMER LAMA
+            this.totalElapsedTime = 0; // Reset timer untuk bahan baru
             startCooking(); 
+        }
     }
-}
+
     @Override
     public void startCooking() {
         if (isCooking || contents.isEmpty()) return;
         
         isCooking = true;
+        // Logic Resume: Waktu mulai mundur ke belakang sebanyak durasi yang sudah lewat
         startTime = System.currentTimeMillis() - totalElapsedTime;
         
         cookingThread = new Thread(() -> {
             try {
                 System.out.println("Boiling started...");
                 while (isCooking) {
-                    
-                    // 🔥 FIX ERROR: CEK JIKA ISI SUDAH KOSONG 🔥
+                    // Safety check: jika isi kosong tiba-tiba
                     if (contents.isEmpty()) { 
-                        stopCooking(); // Hentikan thread jika bahan sudah diambil/dituang
-                        return; // Keluar dari loop thread
+                        stopCooking(); 
+                        return; 
                     }
                     
                     long elapsed = System.currentTimeMillis() - startTime;
-                    
-                    // Baris 71 yang error ada di sini:
                     Ingredient ing = (Ingredient) contents.get(0);
                     
-                    // --- FASE 1: COOKING (0 - 12 detik) ---
+                    // FASE 1: COOKING
                     if (elapsed < TIME_TO_COOK) {
                         progress = (int) ((elapsed / (double) TIME_TO_COOK) * 100);
-                        if (!(ing.getState() instanceof CookingState)) {
-                             ing.cook(); 
-                        }
+                        if (!(ing.getState() instanceof CookingState)) ing.cook();
                     } 
-                    // --- FASE 2: COOKED (12 - 24 detik) ---
+                    // FASE 2: COOKED (Bar Penuh, tapi timer jalan terus menuju Burn)
                     else if (elapsed >= TIME_TO_COOK && elapsed < TIME_TO_BURN) {
                         progress = 100; 
                         if (!(ing.getState() instanceof CookedState)) {
-                            System.out.println("Boiling Done! Item is COOKED.");
                             ing.changeState(new CookedState());
+                            System.out.println("Item Cooked!");
                         }
                     } 
-                    // --- FASE 3: BURNED (> 24 detik) ---
+                    // FASE 3: BURNED
                     else if (elapsed >= TIME_TO_BURN) {
                         if (!(ing.getState() instanceof BurnedState)) {
-                            System.out.println("ALARM! Item is BURNED!");
                             ing.changeState(new BurnedState());
+                            System.out.println("Item Burned!");
                         }
                     }
 
@@ -103,20 +94,18 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
                 System.out.println("Cooking Interrupted.");
             }
         });
-        
         cookingThread.start();
     }
     
     @Override
     public void stopCooking() {
-        if (!isCooking) return; // Penting: Hanya lakukan jika sedang memasak
+        if (!isCooking) return;
         
-        // --- PERBAIKAN STOP TIME ---
-        // Simpan total waktu yang sudah terlewat
-        totalElapsedTime = System.currentTimeMillis() - startTime; 
+        // Logic Pause: Simpan durasi yang sudah berjalan
+        totalElapsedTime = System.currentTimeMillis() - startTime;
         
         isCooking = false;
-        progress = 0;
+        progress = 0; // Visual bar direset (akan hilang saat di tangan chef)
     }
 
     @Override

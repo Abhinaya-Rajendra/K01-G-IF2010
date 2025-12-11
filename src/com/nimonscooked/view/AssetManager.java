@@ -4,17 +4,12 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * AssetManager: Singleton untuk load semua gambar dari resources/images/
- * Coba load dari classpath dulu, jika gagal coba dari file system.
- */
 public class AssetManager {
     private static AssetManager instance;
-    private final Map<String, BufferedImage> images;
+    private Map<String, BufferedImage> images;
 
     private AssetManager() {
         images = new HashMap<>();
@@ -29,121 +24,71 @@ public class AssetManager {
     }
 
     private void loadAllImages() {
-        System.out.println("🎮 AssetManager: Starting to load images...\n");
-
         // 1. Environment
-        load("wall", "images/wall.png");
-        load("floor", "images/floor.png");
+        load("wall", "resources/images/wall.png");
+        load("floor", "resources/images/floor.png");
         
         // 2. Stations Umum
-        load("station_cutting", "images/station_cutting.png");
-        load("station_stove", "images/station_stove.png");
-        load("station_serving", "images/station_serving.png");
-        load("station_assembly", "images/station_assembly.png");
-        load("station_plate", "images/station_plate.png");
-        load("station_wash", "images/station_wash.png");
-        load("station_trash", "images/station_trash.png");
+        load("station_cutting", "resources/images/station_cutting.png");
+        load("station_stove", "resources/images/station_stove.png");
+        load("station_serving", "resources/images/station_serving.png");
+        load("station_assembly", "resources/images/station_assembly.png");
+        load("station_plate", "resources/images/station_plate.png");
+        load("station_wash", "resources/images/station_wash.png");
+        load("station_trash", "resources/images/station_trash.png");
 
-        // 3. Storage Spesifik
-        load("storage_PASTA", "images/storage_PASTA.png");
-        load("storage_TOMATO", "images/storage_TOMATO.png");
-        load("storage_MEAT", "images/storage_MEAT.png");
-        load("storage_SHRIMP", "images/storage_SHRIMP.png");
-        load("storage_FISH", "images/storage_FISH.png");
+        // 3. Storage Spesifik (Pastikan nama file PNG sesuai dengan Enum IngredientType)
+        load("storage_PASTA", "resources/images/storage_PASTA.png");
+        load("storage_TOMATO", "resources/images/storage_TOMATO.png");
+        load("storage_MEAT", "resources/images/storage_MEAT.png");
+        load("storage_SHRIMP", "resources/images/storage_SHRIMP.png");
+        load("storage_FISH", "resources/images/storage_FISH.png");
         
         // 4. Entities & Items
-        load("chef", "images/chef.png");
-        load("pot", "images/pot.png");
-        load("pan", "images/pan.png");
-        load("plate", "images/plate.png");
-        load("item_default", "images/item_tomato.png");
+        load("chef", "resources/images/chef.png");
+        load("pot", "resources/images/pot.png");
+        load("pan", "resources/images/pan.png");
+        load("plate", "resources/images/plate.png");
         
-        // 5. MAIN MENU ASSETS
-        System.out.println("\n📋 Loading main menu images...");
-        load("main_menu", "images/main_menu.png");
-        load("start_game(1)", "images/main_menu/start_game_button(1).png");
-        load("start_game(2)", "images/main_menu/start_game_button(2).png");
-        load("start_game(3)", "images/main_menu/start_game_button(3).png");
-        load("start_random(1)", "images/main_menu/start_random_button(1).png");
-        load("start_random(2)", "images/main_menu/start_random_button(2).png");
-        load("start_random(3)", "images/main_menu/start_random_button(3).png");
-        load("how_to_play(1)", "images/main_menu/how_to_play(1).png");
-        load("how_to_play(2)", "images/main_menu/how_to_play(2).png");
-        load("how_to_play(3)", "images/main_menu/how_to_play(3).png");
-        load("exit(1)", "images/main_menu/exit_button(1).png");
-        load("exit(2)", "images/main_menu/exit_button(2).png");
-        load("exit(3)", "images/main_menu/exit_button(3).png");
+        // Item default (tomatcherry/bola merah)
+        load("item_default", "resources/images/item_tomato.png");
         
-        System.out.println("\n✅ AssetManager: Image loading complete!\n");
+        // Item spesifik (Jika Anda punya gambarnya, aktifkan baris ini)
+        // load("item_tomato", "resources/images/item_tomato.png");
+        // load("item_pasta", "resources/images/item_pasta.png");
+        // --- TAMBAHAN BARU UNTUK UI ---
+        load("ui_coin", "resources/images/ui_coin.png");   // Icon Koin
+        load("ui_timer", "resources/images/ui_timer.png"); // Icon Jam
+        load("ui_card", "resources/images/ui_card.png");   // Background kartu order (opsional)
+
+        // Ikon Bahan Kecil (Untuk di kartu order)
+        load("icon_PASTA", "resources/images/icon_pasta.png");
+        load("icon_TOMATO", "resources/images/icon_tomato.png");
+        load("icon_MEAT", "resources/images/icon_meat.png");
+        // ... dst
+        
+        // Ikon Dish Hasil Jadi (Untuk di kartu order)
+        load("dish_Pasta Marinara", "resources/images/dish_marinara.png");
+        // ... dst sesuaikan nama resep
     }
 
-    /**
-     * Load image dari resources folder.
-     * Coba multiple approaches:
-     * 1. Classpath resource (saat dalam JAR atau IDE)
-     * 2. File system dari folder "resources"
-     */
-    private void load(String key, String path) {
-        BufferedImage img = null;
-        
-        // Approach 1: Try classpath resource dengan "/" prefix
-        try (InputStream is = getClass().getResourceAsStream("/" + path)) {
-            if (is != null) {
-                img = ImageIO.read(is);
-                System.out.println("✅ [Classpath] Loaded: " + path);
+    private void load(String name, String path) {
+        try {
+            File file = new File(path);
+            if (file.exists()) {
+                BufferedImage img = ImageIO.read(file);
+                images.put(name, img);
+            } else {
+                // Jangan error, cukup print info agar kita tahu gambar mana yang hilang
+                System.out.println("⚠️ Image not found: " + path + " (Will use fallback color)");
             }
         } catch (IOException e) {
-            System.out.println("⚠️ [Classpath] Failed to read: " + path);
-        }
-        
-        // Approach 2: Jika classpath gagal, coba dari file system
-        if (img == null) {
-            try {
-                File file = new File("resources" + File.separator + path);
-                if (file.exists()) {
-                    img = ImageIO.read(file);
-                    System.out.println("✅ [FileSystem] Loaded: " + file.getAbsolutePath());
-                } else {
-                    System.out.println("❌ File not found: " + file.getAbsolutePath());
-                }
-            } catch (IOException e) {
-                System.out.println("❌ [FileSystem] Error reading: " + path);
-                e.printStackTrace();
-            }
-        }
-        
-        // Store image (bisa null jika gagal, akan ditangani di getImage)
-        if (img != null) {
-            images.put(key, img);
+            System.err.println("Error loading image: " + path);
         }
     }
 
-    /**
-     * Get image by key name
-     * Return null jika tidak ditemukan (bukan throw exception)
-     */
+    // --- INI METHOD YANG DICARI OLEH GAMEPANEL ---
     public BufferedImage getImage(String name) {
-        if (name == null) return null;
-        
-        BufferedImage img = images.get(name);
-        
-        if (img == null) {
-            System.out.println("⚠️ Image not found in AssetManager: " + name);
-        }
-        
-        return img;
-    }
-
-    /**
-     * Debugging: Print semua image yang sudah di-load
-     */
-    public void printLoadedAssets() {
-        System.out.println("\n📦 Loaded Assets:");
-        images.forEach((key, value) -> {
-            if (value != null) {
-                System.out.println("  ✓ " + key + " (" + value.getWidth() + "x" + value.getHeight() + ")");
-            }
-        });
-        System.out.println("Total: " + images.size() + " images\n");
+        return images.get(name);
     }
 }

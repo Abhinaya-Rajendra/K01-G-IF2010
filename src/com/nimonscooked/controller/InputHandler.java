@@ -12,13 +12,24 @@ public class InputHandler extends KeyAdapter {
     @Override
     public void keyPressed(KeyEvent e) {
         GameModel model = GameModel.getInstance();
-        Chef activeChef = model.getActiveChef();
-        
-        if (activeChef == null) return;
-
         int key = e.getKeyCode();
 
-        // --- MOVEMENT (WASD) ---
+        // --- 1. HANDLING GAME OVER ---
+        if (model.isGameOver()) {
+            // Saat Game Over, tombol 'R' melakukan Restart pada Stage yang sama
+            if (key == KeyEvent.VK_R) {
+                System.out.println("Restarting Game...");
+                // FIX: Gunakan getCurrentStageId(), bukan boolean false
+                model.resetGame(model.getCurrentStageId()); 
+            }
+            return; // Blokir input lain
+        }
+
+        // --- 2. HANDLING GAMEPLAY NORMAL ---
+        Chef activeChef = model.getActiveChef();
+        if (activeChef == null) return;
+
+        // Movement (WASD)
         if (key == KeyEvent.VK_W) {
             activeChef.move(Direction.UP, model.getMap());
         } else if (key == KeyEvent.VK_S) {
@@ -29,35 +40,33 @@ public class InputHandler extends KeyAdapter {
             activeChef.move(Direction.RIGHT, model.getMap());
         }
         
-        // --- INTERACT / PICK UP / DROP (Space / V) ---
-        // Spek: Interact (V), Pick/Drop (C). Kita gabung jadi Spasi atau pisah.
-        // Mari kita ikuti default spek tapi mapping ke tombol yang nyaman.
-        // Space = Interact/Action (Potong/Cuci) & Pick/Drop (Standard Gaming)
+        // Interact / Pick / Drop (Space)
         else if (key == KeyEvent.VK_SPACE || key == KeyEvent.VK_V || key == KeyEvent.VK_C) {
             activeChef.interact(model.getMap());
         }
         
-        // --- SWITCH CHEF (B / Tab) ---
+        // Switch Chef (Tab / B)
         else if (key == KeyEvent.VK_B || key == KeyEvent.VK_TAB) {
             model.switchChef();
         }
         
-        // --- DASH (Shift) ---
+        // Dash (Shift)
         else if (key == KeyEvent.VK_SHIFT) {
             activeChef.dash();
         }
         
-        // --- THROW (F) ---
+        // Throw (F)
         else if (key == KeyEvent.VK_F) {
             activeChef.throwItem();
         }
         
-        // --- DEBUG: RESET (R) ---
+        // Debug Restart (R) saat main biasa
         else if (key == KeyEvent.VK_R) {
-            model.resetGame(false);
+             // FIX: Gunakan getCurrentStageId() juga di sini
+            model.resetGame(model.getCurrentStageId());
         }
         
-        // Update View setelah input
+        // Update View
         model.notifyObservers();
     }
 }
