@@ -24,7 +24,12 @@ public class AssetManager {
     }
 
     private void loadAllImages() {
-        // --- MEMUAT ASET LAMA ---
+        // Daftar tipe ingredient yang digunakan di game
+        String[] ingredientTypes = {"pasta", "tomato", "meat", "shrimp", "fish"};
+        
+        // --- ASSETS SPRINT 1: CORE ITEMS & CHEF ACTIONS ---
+        
+        // 1. STATIONS (Keys dipertahankan, asumsi path sudah benar)
         load("wall", "resources/images/wall.png");
         load("floor", "resources/images/floor.png");
         load("station_cutting", "resources/images/station_cutting.png");
@@ -35,49 +40,81 @@ public class AssetManager {
         load("station_wash", "resources/images/station_wash.png");
         load("station_trash", "resources/images/station_trash.png");
 
-        load("storage_PASTA", "resources/images/storage_PASTA.png");
-        load("storage_TOMATO", "resources/images/storage_TOMATO.png");
-        load("storage_MEAT", "resources/images/storage_MEAT.png");
-        load("storage_SHRIMP", "resources/images/storage_SHRIMP.png");
-        load("storage_FISH", "resources/images/storage_FISH.png");
-        
-        load("chef", "resources/images/chef.png");
+        // 2. INGREDIENT STORAGE (Menggunakan loop & lowercase key)
+        for (String type : ingredientTypes) {
+             // Menggunakan key lowercase: storage_pasta, storage_tomato, dll.
+             load("storage_" + type, "resources/images/storage_" + type.toUpperCase() + ".png"); 
+        }
+
+        // 3. CHEF & UTENSILS (Standardisasi Key)
+        load("chef_default", "resources/images/chef.png"); // Key default untuk Chef
         load("pot", "resources/images/pot.png");
         load("pan", "resources/images/pan.png");
-        load("plate", "resources/images/plate.png");
-        load("item_default", "resources/images/item_tomato.png");
         
-        // load("icon_PASTA", "resources/images/icon_pasta.png"); // Non-aktifkan jika belum ada aset
-        // load("icon_TOMATO", "resources/images/icon_tomato.png");
-        // load("icon_MEAT", "resources/images/icon_meat.png");
-        // load("dish_Pasta Marinara", "resources/images/dish_marinara.png"); 
+        // Plate (Dipisahkan clean/dirty)
+        load("plate_clean", "resources/images/plate_clean.png"); 
+        load("plate_dirty", "resources/images/plate_dirty.png"); 
+        load("plate", "resources/images/plate_clean.png"); // Fallback key lama
         
-        // --- TAMBAHAN ASET UI BARU ---
-        // Aset HUD (Koin & Jam)
-        load("ui_coin", "resources/images/ui_coin.png");      // [ASSET: ui_coin.png]
-        load("ui_timer", "resources/images/ui_timer.png");    // [ASSET: ui_timer.png]
+        // Item default
+        load("item_default", "resources/images/item_default.png"); 
 
-        // Aset Stage Select (Penjepit, Tombol O & X)
-        load("ui_clothespin", "resources/images/ui_clothespin.png"); // [ASSET: ui_clothespin.png]
-        load("ui_icon_o", "resources/images/ui_icon_o.png");          // [ASSET: ui_icon_o.png]
-        load("ui_icon_x", "resources/images/ui_icon_x.png");          // [ASSET: ui_icon_x.png]
+
+        // 4. INGREDIENT STATES (Keys: item_{tipe}_{status})
+        String[] states = {"raw", "chopped", "cooked", "burned"};
+        for (String type : ingredientTypes) {
+             for (String state : states) {
+                 // Asumsi nama file: resources/images/item_pasta_raw.png, item_pasta_chopped.png, dst.
+                 load("item_" + type + "_" + state, "resources/images/item_" + type + "_" + state + ".png");
+             }
+        }
         
-        // Aset Dish (Pastikan nama resep sudah diubah menjadi underscore dan lowercase di GamePanel)
-        load("pasta_marinara", "resources/images/dish_marinara.png"); 
-        load("pasta_bolognese", "resources/images/dish_bolognese.png"); 
-        load("pasta_frutti_di_mare", "resources/images/dish_frutti_di_mare.png"); 
+        // --- ASSETS SPRINT 3 (UI & DISHES) ---
+        // Aset HUD
+        load("ui_coin", "resources/images/ui_coin.png"); 
+        load("ui_timer", "resources/images/ui_timer.png"); 
+
+        // Aset Stage Select 
+        load("ui_clothespin", "resources/images/ui_clothespin.png"); 
+        load("ui_icon_o", "resources/images/ui_icon_o.png"); 
+        load("ui_icon_x", "resources/images/ui_icon_x.png"); 
+        
+        // Aset Dish (Disesuaikan dengan format penamaan lowercase_underscore)
+        load("pasta_marinara", "resources/images/dish_pasta_marinara.png"); 
+        load("pasta_bolognese", "resources/images/dish_pasta_bolognese.png"); 
+        load("pasta_frutti_di_mare", "resources/images/dish_pasta_frutti_di_mare.png"); 
+
+        // Tambahkan di dalam private void loadAllImages()
+
+        // --- SPRINT 2: CHEF MOVEMENT & ACTIONS ---
+        load("chef_up", "resources/images/chef_up.png");
+        load("chef_down", "resources/images/chef_down.png");
+        load("chef_left", "resources/images/chef_left.png");
+        load("chef_right", "resources/images/chef_right.png");
+
+        // Animasi 2 Frame (Frame 0 & 1)
+        load("chef_chopping_0", "resources/images/chef_chopping_1.png"); // Chef memotong Frame 1
+        load("chef_chopping_1", "resources/images/chef_chopping_2.png"); // Chef memotong Frame 2
+        load("chef_washing_0", "resources/images/chef_washing_1.png"); // Chef mencuci Frame 1
+        load("chef_washing_1", "resources/images/chef_washing_2.png"); // Chef mencuci Frame 2
+
+        // --- SPRINT 2: UTENSIL VISUAL ---
+        // Utensil Cooking Visual (Satu aset untuk visual memasak)
+        load("pot_cooking", "resources/images/pot_cooking.png"); 
+        load("pan_cooking", "resources/images/pan_cooking.png"); 
+
+        // --- SPRINT 2: PROJECTILE ---
+        load("projectile_shadow", "resources/images/projectile_shadow.png");
     }
 
     private void load(String name, String path) {
         try {
-            // MEMPERTAHANKAN METODE new File() UNTUK STABILITAS LOKAL
             File file = new File(path);
             if (file.exists()) {
                 BufferedImage img = ImageIO.read(file);
                 images.put(name, img);
             } else {
-                // Memberi tahu jika file tidak ditemukan
-                System.out.println("⚠️ Image not found (File System): " + path + " (Will use fallback color)");
+                System.out.println("⚠️ Image not found: " + path + " (Key: " + name + "). Will use fallback color.");
             }
         } catch (IOException e) {
             System.err.println("Error loading image: " + path);

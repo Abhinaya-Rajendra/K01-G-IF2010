@@ -2,8 +2,11 @@ package com.nimonscooked.model.items;
 
 import com.nimonscooked.core.CookingDevice;
 import com.nimonscooked.core.Preparable;
-
-// Pastikan semua Import ini ada agar tidak error "Symbol Not Found"
+import com.nimonscooked.model.items.Ingredient; 
+import com.nimonscooked.model.items.IngredientState;
+import com.nimonscooked.model.items.BurnedState; 
+import com.nimonscooked.model.items.CookedState; 
+import com.nimonscooked.model.items.CookingState;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,14 +14,12 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
 
     protected List<Preparable> contents;
     
-    // Status Masak
     protected boolean isCooking = false;
     protected int cookingProgress = 0; 
     protected Thread cookingThread;
     
-    // Konfigurasi Waktu (Default)
-    protected int cookTimeMs = 5000;
-    protected int burnTimeMs = 10000;
+    protected int cookTimeMs = 12000; 
+    protected int burnTimeMs = 24000; 
 
     public KitchenUtensil(String name) {
         super(name);
@@ -29,6 +30,9 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
     public boolean isEmpty() { return contents.isEmpty(); }
     
     public void clearContents() {
+        if (cookingThread != null && cookingThread.isAlive()) {
+             cookingThread.interrupt();
+        }
         contents.clear();
         this.cookingProgress = 0;
         this.isCooking = false;
@@ -36,9 +40,15 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
     
     @Override
     public void addIngredient(Preparable item) {
+        if (!isEmpty()) {
+            String itemName = (item instanceof Item) ? ((Item) item).getName() : "item";
+            System.out.println("Utensil is already full. Cannot add " + itemName);
+            return;
+        }
+
         if (canAccept(item)) {
             contents.add(item);
-            this.cookingProgress = 0; 
+            this.cookingProgress = 0; // Reset hanya ketika item baru ditambahkan
             startCooking();
         }
     }
@@ -46,49 +56,80 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
     @Override
     public abstract boolean canAccept(Preparable item);
 
-    // --- IMPLEMENTASI COOKING DEVICE ---
-
     @Override public boolean isPortable() { return true; }
-    @Override public int capacity() { return 1; }
+    // Asumsi kapasitas Pot/Pan adalah 1, Plate adalah 4
+    @Override public int capacity() { return 1; } 
     @Override public boolean isCooking() { return isCooking; }
-    @Override public int getCookingProgress() { return cookingProgress; }
+    
+    @Override 
+    public int getCookingProgress() { 
+        return Math.min(cookingProgress, 200); 
+    }
 
     @Override
     public void startCooking() {
         if (isEmpty()) return;
         if (!(contents.get(0) instanceof Ingredient)) return;
         if (this instanceof Plate) return; 
-        if (isCooking) return;
+        
+        // Jika dipanggil saat sudah berjalan, abaikan (thread lama masih hidup)
+        if (isCooking && cookingThread != null && cookingThread.isAlive()) {
+             return; 
+        }
+
+        Ingredient ing = (Ingredient) contents.get(0); 
+        
+        if (ing.getState() instanceof BurnedState) { 
+            System.out.println("Cannot cook burned ingredient. Clear Utensil first.");
+            return;
+        }
         
         isCooking = true;
         
+        // Hentikan thread lama jika ada, untuk restart dengan offset waktu yang benar
+        if (cookingThread != null && cookingThread.isAlive()) {
+             cookingThread.interrupt();
+        }
+
         cookingThread = new Thread(() -> {
             try {
-                long startTime = System.currentTimeMillis() - (long)((cookingProgress / 100.0) * cookTimeMs);
+                // FIX PROGRESS RESET: Hitung offset waktu yang sudah berlalu
+                // Jika cookingProgress = 50, maka offset harus 50% dari cookTimeMs.
+                long elapsedOffsetMs = (long) (this.cookingProgress * cookTimeMs / 100.0);
+                
+                // Set startTime seolah-olah proses sudah berjalan selama elapsedOffsetMs
+                long startTime = System.currentTimeMillis() - elapsedOffsetMs; 
                 
                 while (isCooking) {
-                    if (contents.isEmpty()) { stopCooking(); return; }
-
+                    if (contents.isEmpty()) { 
+                        stopCooking(); 
+                        return; 
+                    }
+                    
                     long elapsed = System.currentTimeMillis() - startTime;
                     
+                    // Hitung progress baru. Jika dimulai dari 50%, elapsed awal sudah 6000ms.
                     cookingProgress = (int) ((elapsed / (double) cookTimeMs) * 100);
                     
-                    Ingredient ing = (Ingredient) contents.get(0);
-                    IngredientState currentState = ing.getState();
+                    Ingredient currentIng = (Ingredient) contents.get(0); 
+                    IngredientState currentState = currentIng.getState();
                     
-                    // Update State Bahan
-                    // Pastikan file BurnedState, CookedState, CookingState sudah dibuat!
                     if (cookingProgress >= 200) { 
-                        if (!(currentState instanceof BurnedState)) ing.setState(new BurnedState());
+                        if (!(currentState instanceof BurnedState)) currentIng.setState(new BurnedState());
+                        stopCooking(); 
+                        return; 
                     } else if (cookingProgress >= 100) { 
-                        if (!(currentState instanceof CookedState) && !(currentState instanceof BurnedState)) ing.setState(new CookedState());
+                        if (!(currentState instanceof CookedState) && !(currentState instanceof BurnedState)) currentIng.setState(new CookedState());
                     } else if (cookingProgress > 0) {
-                        if (!(currentState instanceof CookingState) && !(currentState instanceof CookedState)) ing.setState(new CookingState());
+                        if (!(currentState instanceof CookingState) && !(currentState instanceof CookedState)) currentIng.setState(new CookingState());
                     }
                     
                     Thread.sleep(100);
                 }
-            } catch (InterruptedException e) { }
+            } catch (InterruptedException e) { 
+                // Thread dihentikan (misalnya saat clearContents atau Utensil dipindahkan)
+                Thread.currentThread().interrupt();
+            }
         });
         cookingThread.start();
     }
@@ -100,10 +141,22 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
 
     public void moveContentsTo(Plate targetPlate) {
         if (targetPlate == null) return;
-        for (Preparable item : new ArrayList<>(contents)) {
-            targetPlate.addIngredient(item);
+        
+        if (!contents.isEmpty()) {
+            Preparable item = contents.get(0);
+            
+            if (item instanceof Ingredient) {
+                Ingredient ing = (Ingredient) item;
+                
+                if (!(ing.getState() instanceof BurnedState)) {
+                    targetPlate.addIngredient(ing);
+                    this.clearContents(); 
+                } else {
+                    String itemName = (ing instanceof Item) ? ((Item) ing).getName() : "Ingredient";
+                    System.out.println("Cannot move burned ingredient (" + itemName + ") to plate. Must dispose.");
+                }
+            }
         }
-        this.clearContents();
         this.stopCooking(); 
     }
 }

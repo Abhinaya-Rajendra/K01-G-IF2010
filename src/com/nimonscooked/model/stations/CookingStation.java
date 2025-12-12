@@ -21,23 +21,17 @@ public class CookingStation extends Station {
     public void interact(Chef chef) {
         Object heldItem = chef.getInventory().getItem();
 
-        // KASUS A: Ada Alat Masak
-        if (device != null) {
+        // KASUS A: Ada Alat Masak (Utensil) di Stove
+        if (device != null && device instanceof KitchenUtensil) {
             KitchenUtensil utensil = (KitchenUtensil) device;
 
             // 1. PLATING (Piring Bersih -> Ambil Masakan)
             if (heldItem instanceof Plate) {
                 Plate plate = (Plate) heldItem;
-                if (plate.isClean() && !utensil.isEmpty()) {
-                    Preparable food = utensil.getContents().get(0);
-                    // Ambil masakan dari Panci ke Piring
-                    plate.addIngredient((Ingredient) food);
-                    utensil.clearContents(); 
-                    utensil.stopCooking();   
-                    System.out.println("Plated food from pot!");
-                } else {
-                    System.out.println("Cannot place plate on pot!");
-                }
+                
+                // FIX: Panggil moveContentsTo Utensil. Utensil yang menentukan apakah bisa di-scoop.
+                utensil.moveContentsTo(plate); 
+                
             }
             
             // 2. COOKING (Bahan -> Masuk Panci)
@@ -53,9 +47,9 @@ public class CookingStation extends Station {
             
             // 3. PICKUP (Tangan Kosong -> Ambil Panci)
             else if (heldItem == null) {
-                device.stopCooking(); // Pause timer
-                chef.getInventory().setItem(utensil); // Masukkan Panci ke Inventory
-                this.device = null; // Station jadi kosong
+                device.stopCooking(); 
+                chef.getInventory().setItem(utensil); 
+                this.device = null; 
                 System.out.println("Took the cooking utensil.");
             }
         }

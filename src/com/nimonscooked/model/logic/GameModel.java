@@ -9,6 +9,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import javax.swing.Timer;
+import java.util.concurrent.CopyOnWriteArrayList; 
+
+// Interface untuk objek yang perlu di-update setiap tick game
+public interface GameTickable {
+    void updateByTick();
+} 
 
 public class GameModel {
     private static GameModel instance;
@@ -24,8 +30,15 @@ public class GameModel {
     private Timer gameLoop;
     private int score = 0;
     private long lastTickTime = 0;
+    
+    // Waktu Game 
     private long gameStartTime;
-
+    private long timePaused = 0; 
+    private long pauseStartTime = 0;
+    
+    // FIX: List untuk melacak stasiun/objek yang sedang memiliki progress aktif
+    private List<GameTickable> activeStations = new CopyOnWriteArrayList<>();
+    
     // --- PAUSE LOGIC ---
     private boolean isPaused = false;
     
@@ -34,7 +47,7 @@ public class GameModel {
     private boolean isStagePassed = false;
     private int failedOrdersCount = 0;
     private final int MAX_FAILED_ORDERS = 5; 
-    private final int GAME_DURATION_LIMIT = 180; 
+    private final int GAME_DURATION_LIMIT = 120; 
     
     private int currentStageId = 1;
     private int targetScore = 0;
@@ -74,12 +87,13 @@ public class GameModel {
     }
 
     private void updateGame() {
-        // --- REVISI: HENTIKAN UPDATE JIKA PAUSED ---
         if (isGameOver || isPaused) return; 
         if (map == null) return;
         
+        // Cek Time Limit di awal untuk prioritas. 
         checkTimeLimit(); 
-        
+        if (isGameOver) return; // FIX: Penting untuk menghentikan loop jika game over
+
         // 1. UPDATE CHEF PHYSICS
         for (Chef c : chefs) {
             c.update(map); 
@@ -98,14 +112,19 @@ public class GameModel {
             }
         }
         
-        // 3. GAME LOGIC
+        // 3. FIX: UPDATE ACTIVE STATION PROGRESS 
+        for (GameTickable station : activeStations) {
+            station.updateByTick();
+        }
+        
+        // 4. GAME LOGIC (Order Tick)
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastTickTime >= 1000) {
             if (orderManager != null) orderManager.tick();
             lastTickTime = currentTime;
         }
         
-        // 4. PENDING PLATES
+        // 5. PENDING PLATES
         if (!pendingPlates.isEmpty()) {
             Iterator<PendingPlate> it = pendingPlates.iterator();
             while (it.hasNext()) {
@@ -120,26 +139,72 @@ public class GameModel {
         notifyObservers();
     }
     
-    // --- PAUSE METHODS BARU ---
+    // --- METODE KONTROL PROGRESS STASIUN ---
+    public void startStationProgress(GameTickable station) {
+        if (!activeStations.contains(station)) {
+            activeStations.add(station);
+        }
+    }
+
+    public void stopStationProgress(GameTickable station) {
+        activeStations.remove(station);
+    }
+    
+    // --- PAUSE METHODS ---
     public void togglePause() {
         this.isPaused = !this.isPaused;
         
-        // Reset input saat pause/resume agar chef berhenti
-        if (getActiveChef() != null) {
-            getActiveChef().stopMovement();
+        if (isPaused) {
+            pauseStartTime = System.currentTimeMillis();
+        } else {
+            timePaused += System.currentTimeMillis() - pauseStartTime;
+            pauseStartTime = 0; 
         }
         
-        notifyObservers(); // Beri tahu GamePanel untuk menampilkan/menyembunyikan PausePanel
-        System.out.println("Game Paused: " + this.isPaused);
+        for (Chef c : chefs) c.stopMovement();
+        
+        notifyObservers();
     }
     
     public boolean isPaused() {
         return isPaused;
     }
 
+    // --- GAME OVER LOGIC ---
+    
+    public void addFailedOrder() {
+        if (isGameOver) return;
+        this.failedOrdersCount++;
+        
+        if (failedOrdersCount >= MAX_FAILED_ORDERS) {
+            // FIX: Panggil finishGame(false) secara eksplisit untuk Game Over karena kegagalan
+            finishGame(false); 
+        } else {
+            notifyObservers(); 
+        }
+    }
+    
+    private void checkTimeLimit() {
+        if (getGameDuration() >= GAME_DURATION_LIMIT) {
+            // Jika waktu habis, status ditentukan oleh perbandingan skor.
+            boolean passed = (score >= targetScore);
+            finishGame(passed);
+        }
+    }
+    
+    private void finishGame(boolean passed) {
+        if (isGameOver) return; 
+        isGameOver = true;
+        
+        // FIX: Ensure isStagePassed is set correctly based on the 'passed' boolean
+        isStagePassed = passed; 
+        
+        notifyObservers(); 
+    }
+
     // --- HELPER METHODS ---
     public void switchChef() {
-        if (isPaused || isGameOver) return; // FIX: Tidak bisa ganti chef saat dijeda
+        if (isPaused || isGameOver) return; 
         if (chefs.size() < 2) return;
         getActiveChef().stopMovement();
         activeChefIndex = (activeChefIndex + 1) % chefs.size();
@@ -151,10 +216,12 @@ public class GameModel {
         this.isStagePassed = false;
         this.failedOrdersCount = 0;
         this.currentStageId = stageId;
-        this.isPaused = false; // FIX: Pastikan tidak dalam keadaan paused
-        
+        this.isPaused = false; 
+        this.timePaused = 0; 
+        this.pauseStartTime = 0;
+        this.activeStations.clear();
+
         boolean isRandomMap = (stageId == 2);
-        // FIX: Target score Stage 2 disamakan dengan target yang sudah disepakati (200)
         this.targetScore = (stageId == 1) ? 150 : 200; 
         
         this.map = new Map(isRandomMap);
@@ -175,19 +242,25 @@ public class GameModel {
         notifyObservers();
     }
     
-    // FIX: getGameDuration harus menghitung waktu yang berlalu hanya saat game TIDAK paused
     public long getGameDuration() {
-        if (isGameOver) {
-            long elapsed = (System.currentTimeMillis() - gameStartTime) / 1000;
-            return Math.min(elapsed, GAME_DURATION_LIMIT); 
+        long elapsedMillis = System.currentTimeMillis() - gameStartTime;
+        
+        if (isPaused && pauseStartTime > 0) {
+            elapsedMillis -= (System.currentTimeMillis() - pauseStartTime);
         }
         
-        // CATATAN: Karena game loop berhenti, ini hanya akan memberikan nilai yang sama
-        // sepanjang jeda. Untuk timer yang lebih akurat, diperlukan variabel long pauseTime.
-        // Untuk saat ini, kita biarkan logicnya sederhana (waktu nyata)
+        elapsedMillis -= timePaused;
         
-        long elapsedMillis = System.currentTimeMillis() - gameStartTime;
-        return elapsedMillis / 1000; 
+        long elapsedSeconds = elapsedMillis / 1000;
+        
+        if (isGameOver) {
+            return Math.min(elapsedSeconds, GAME_DURATION_LIMIT); 
+        }
+        return elapsedSeconds; 
+    }
+
+    public Timer getGameLoop() { 
+        return gameLoop; 
     }
 
     public void registerPlateStorage(PlateStorage ps) {
@@ -200,28 +273,6 @@ public class GameModel {
         pendingPlates.add(new PendingPlate(returnTime));
     }
 
-    public void addFailedOrder() {
-        if (isGameOver) return;
-        this.failedOrdersCount++;
-        notifyObservers(); 
-        if (failedOrdersCount >= MAX_FAILED_ORDERS) {
-            finishGame(false); 
-        }
-    }
-    
-    private void checkTimeLimit() {
-        if (getGameDuration() >= GAME_DURATION_LIMIT) {
-            boolean passed = (score >= targetScore);
-            finishGame(passed);
-        }
-    }
-    
-    private void finishGame(boolean passed) {
-        isGameOver = true;
-        isStagePassed = passed;
-        notifyObservers(); 
-    }
-    
     // --- GETTERS ---
     public Chef getActiveChef() {
         if (chefs.isEmpty()) return null;

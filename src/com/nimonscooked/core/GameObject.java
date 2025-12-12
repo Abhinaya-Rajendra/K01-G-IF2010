@@ -17,4 +17,14 @@ public abstract class GameObject {
         this.position.setX(x);
         this.position.setY(y);
     }
+
+    // FIX AKHIR: Mengambil nilai X dari objek 'position'
+    public int getGridX() {
+        return this.position.getX(); 
+    }
+
+    // FIX AKHIR: Mengambil nilai Y dari objek 'position'
+    public int getGridY() {
+        return this.position.getY(); 
+    }
 }

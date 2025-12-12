@@ -22,18 +22,40 @@ public class Plate extends KitchenUtensil {
         }
     }
 
+    @Override public int capacity() { 
+        return 4; // Kapasitas yang realistis (misalnya, 4)
+    }
+
     @Override
     public boolean canAccept(Preparable item) {
-        // Piring hanya menerima makanan jika BERSIH
-        return isClean;
+        if (!isClean) {
+            return false;
+        }
+        
+        // Cek apakah item yang ditambahkan adalah Ingredient
+        if (!(item instanceof Ingredient)) {
+             return false; 
+        }
+        
+        // Cek kapasitas
+        return contents.size() < capacity(); 
     }
 
     @Override
     public void addIngredient(Preparable item) {
-        if (isClean) {
-            super.addIngredient(item);
-        } else {
+        // Mendapatkan nama item secara aman untuk logging/debugging
+        String itemName = (item instanceof Item) ? ((Item) item).getName() : "Unknown Item";
+        
+        if (canAccept(item)) {
+            // TIDAK MEMANGGIL super.addIngredient() karena logika super memblokir setelah item pertama!
+            contents.add(item); 
+            
+            System.out.println("Added " + itemName + " to the plate. Current count: " + contents.size());
+        } else if (!isClean) {
             System.out.println("Cannot place food on a dirty plate!");
+        } else {
+            // FIX: Menggunakan itemName
+            System.out.println("Plate is full. Cannot add " + itemName);
         }
     }
 }

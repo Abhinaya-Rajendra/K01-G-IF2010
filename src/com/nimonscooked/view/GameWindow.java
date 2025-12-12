@@ -21,7 +21,7 @@ public class GameWindow extends JFrame implements GameObserver {
     
     // Game Container
     private JPanel gameContainer;
-    private GamePanel gamePanel; // GamePanel sekarang adalah JLayeredPane Wrapper
+    private GamePanel gamePanel; 
     
     private InputHandler inputHandler;
 
@@ -47,7 +47,7 @@ public class GameWindow extends JFrame implements GameObserver {
         mainContainer.add(resultPanel, "RESULT");
 
         add(mainContainer);
-        pack();
+        pack(); 
         setLocationRelativeTo(null); 
         
         // Show initial screen
@@ -63,31 +63,30 @@ public class GameWindow extends JFrame implements GameObserver {
     private void initPanels() {
         // --- GAME CONTROLS (Callbacks Baru) ---
         
-        // Callback: Pindah ke Main Menu
         Runnable goToMenu = () -> {
-            // FIX: Pastikan game tidak dalam mode pause saat kembali ke menu
             if (GameModel.getInstance().isPaused()) {
-                 GameModel.getInstance().togglePause();
+                GameModel.getInstance().togglePause();
             }
             cardLayout.show(mainContainer, "MENU");
+            pack(); 
             requestFocusInWindow();
         };
         
-        // Callback: Restart Stage (Digunakan ResultPanel & PausePanel)
         Runnable onRestartGame = () -> {
-             // Dapatkan Stage ID sebelum di-reset model
             int currentStageId = GameModel.getInstance().getCurrentStageId();
             startGame(currentStageId);
         };
         
-        // Callback: Start Game dari StageSelectPanel
         Consumer<Integer> onStartGame = (stageId) -> {
             startGame(stageId);
         };
         
         // --- MENU ---
         menuPanel = new MainMenuPanel(
-            () -> cardLayout.show(mainContainer, "STAGE_SELECT") 
+            () -> {
+                cardLayout.show(mainContainer, "STAGE_SELECT");
+                pack(); 
+            }
         );
 
         // --- STAGE SELECT ---
@@ -98,22 +97,21 @@ public class GameWindow extends JFrame implements GameObserver {
 
         // --- GAME CONTAINER ---
         gameContainer = new JPanel(new BorderLayout());
-        // REVISI: GamePanel menerima callback untuk Pause Menu
         gamePanel = new GamePanel(onRestartGame, goToMenu); 
         gameContainer.add(gamePanel, BorderLayout.CENTER);
 
         // --- RESULT ---
-        // REVISI: ResultPanel menggunakan onRestartGame yang baru
         resultPanel = new ResultPanel(
-            onRestartGame, // Retry
-            goToMenu // Back to Menu
+            onRestartGame, 
+            goToMenu 
         );
     }
 
     private void startGame(int stageId) {
         GameModel.getInstance().resetGame(stageId);
         cardLayout.show(mainContainer, "GAME");
-        this.requestFocusInWindow(); // Penting agar InputHandler (keyboard) bekerja
+        pack(); 
+        this.requestFocusInWindow(); 
     }
 
     // --- GAME OBSERVER IMPLEMENTATION ---
@@ -124,9 +122,14 @@ public class GameWindow extends JFrame implements GameObserver {
         if (model.isGameOver()) {
             // Logic transisi ke Result Panel
             if (resultPanel.isVisible() == false) {
-                 // resultPanel.updateResult(); // Panggil method update data di ResultPanel
-                 cardLayout.show(mainContainer, "RESULT");
-                 requestFocusInWindow();
+                
+                // FIX: Panggil updateResult() segera sebelum pindah ke RESULT card
+                resultPanel.updateResult(); 
+                
+                cardLayout.show(mainContainer, "RESULT");
+                
+                pack(); 
+                requestFocusInWindow();
             }
         }
     }

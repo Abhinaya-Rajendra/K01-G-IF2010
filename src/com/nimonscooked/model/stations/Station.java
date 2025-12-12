@@ -10,4 +10,5 @@ public abstract class Station extends GameObject {
     }
 
     public abstract void interact(Chef chef);
+    
 }

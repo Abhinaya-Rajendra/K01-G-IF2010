@@ -1,7 +1,7 @@
 package com.nimonscooked.view;
 
 import com.nimonscooked.core.CookingDevice;
-import com.nimonscooked.core.GameObserver; // Import ini tetap diperlukan untuk tipe data
+import com.nimonscooked.core.GameObserver; 
 import com.nimonscooked.model.logic.GameModel;
 import com.nimonscooked.model.logic.Map;
 import com.nimonscooked.model.logic.Tile;
@@ -19,7 +19,6 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-// REVISI: GameDrawingPanel HANYA subklas JPanel (Tidak lagi implements GameObserver)
 public class GameDrawingPanel extends JPanel { 
 
     private GameModel model;
@@ -43,10 +42,8 @@ public class GameDrawingPanel extends JPanel {
     private final Font FONT_ORDER_TITLE = new Font("Comic Sans MS", Font.BOLD, 12);
     private final Font FONT_MSG = new Font("Comic Sans MS", Font.BOLD, 50);
 
-    // REVISI: Konstruktor diubah agar dipanggil oleh GamePanel (wrapper)
     public GameDrawingPanel(GameModel model) { 
         this.model = model;
-        // HILANG: this.model.addObserver(this); -> Observer pindah ke GamePanel (wrapper)
         this.assets = AssetManager.getInstance();
         
         setPreferredSize(new Dimension(14 * TILE_SIZE + SIDEBAR_WIDTH, 10 * TILE_SIZE + 50));
@@ -57,42 +54,33 @@ public class GameDrawingPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         
-        // FIX: Jangan gambar apa-apa jika game dijeda (kecuali latar belakang hitam)
         if (model.isPaused()) {
             return; 
         }
 
         Graphics2D g2d = (Graphics2D) g;
 
-        // --- AKTIVASI KUALITAS RENDERING TINGGI ---
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
-        // --- END REVISI ---
 
         int w = getWidth();
         int h = getHeight();
-        int gameAreaWidth = w - SIDEBAR_WIDTH;
+        int gameAreaWidth = w - SIDEBAR_WIDTH; 
 
-        // 1. Gambar Map (Kiri)
         drawGameWorld(g2d, gameAreaWidth, h);
-        
-        // 2. Gambar Sidebar (Kanan)
         drawSidebar(g2d, gameAreaWidth, 0, SIDEBAR_WIDTH, h);
-        
-        // 3. Gambar HUD (Koin & Timer)
         drawHUD(g2d, gameAreaWidth, h);
 
-        // 4. Overlay Game Over
         if (model.isGameOver()) {
             drawGameOverScreen(g2d);
         }
     }
 
     // ==========================================
-    // BAGIAN 1: MAP RENDER
+    // LOGIC SCALING DAN RENDERING MAP 
     // ==========================================
     
     private void drawGameWorld(Graphics2D g2d, int viewWidth, int viewHeight) {
@@ -131,10 +119,6 @@ public class GameDrawingPanel extends JPanel {
         g2d.setTransform(oldTransform);
         g2d.setClip(originalClip);
     }
-
-    // ==========================================
-    // BAGIAN 2: SIDEBAR (ORDER LIST)
-    // ==========================================
 
     private void drawSidebar(Graphics2D g, int x, int y, int w, int h) {
         // Background
@@ -210,7 +194,7 @@ public class GameDrawingPanel extends JPanel {
 
         for (int i = 0; i < ingredients.size(); i++) {
             IngredientType type = ingredients.get(i);
-            String iconKey = "icon_" + type.toString(); 
+            String iconKey = "icon_" + type.toString().toLowerCase(); 
             BufferedImage iconImg = assets.getImage(iconKey);
 
             int currentX = startIngX + (i * (ingSize + ingGap));
@@ -240,10 +224,6 @@ public class GameDrawingPanel extends JPanel {
 
         g.setClip(oldClip);
     }
-
-    // ==========================================
-    // BAGIAN 3: HUD (KOIN & TIMER)
-    // ==========================================
 
     private void drawHUD(Graphics2D g, int gameAreaWidth, int fullHeight) {
         int iconSize = 75;
@@ -304,10 +284,6 @@ public class GameDrawingPanel extends JPanel {
         g.drawString(text, x, y);
     }
 
-    // ==========================================
-    // BAGIAN 4: UTILITIES
-    // ==========================================
-
     private void drawFloor(Graphics g) {
         Map map = model.getMap();
         for (int y = 0; y < map.getRows(); y++) {
@@ -333,14 +309,14 @@ public class GameDrawingPanel extends JPanel {
 
             if (s != null) {
                 if (s instanceof IngredientStorage) {
-                    imgKey = "storage_" + ((IngredientStorage) s).getType();
+                    imgKey = "storage_" + ((IngredientStorage) s).getType().toString().toLowerCase(); 
                     color = Color.ORANGE;
-                } else if (s instanceof CuttingStation) {
-                    imgKey = "station_cutting";
-                    color = new Color(173, 216, 230);
                 } else if (s instanceof CookingStation) {
                     imgKey = "station_stove";
                     color = new Color(255, 180, 180);
+                } else if (s instanceof CuttingStation) {
+                    imgKey = "station_cutting";
+                    color = new Color(173, 216, 230);
                 } else if (s instanceof ServingCounter) {
                     imgKey = "station_serving";
                     color = new Color(144, 238, 144);
@@ -366,6 +342,21 @@ public class GameDrawingPanel extends JPanel {
             }
             drawImageOrRect(g, imgKey, color, px, drawY, TILE_SIZE, TILE_SIZE);
             drawStationDetails(g, tile, px, drawY);
+            
+            // Progress bar Cutting/Washing (Progress Bar Station)
+            if (s instanceof CuttingStation) {
+                 CuttingStation cs = (CuttingStation) s;
+                 if (cs.getProgress() > 0 && cs.getProgress() < 100) {
+                      g.setColor(PROGRESS_GREEN.darker());
+                      g.fillRect(px + 5, py - 10, (int) (40 * cs.getProgress() / 100.0), 6);
+                 }
+            } else if (s instanceof WashingStation) {
+                 WashingStation ws = (WashingStation) s;
+                 if (ws.getProgress() > 0 && ws.getProgress() < 100) {
+                      g.setColor(Color.CYAN);
+                      g.fillRect(px + 5, py - 10, (int) (40 * ws.getProgress() / 100.0), 6);
+                 }
+            }
         } else if (tile.getGroundItem() != null) {
             drawItem(g, tile.getGroundItem(), px + 15, py + 15, 20);
         }
@@ -375,30 +366,28 @@ public class GameDrawingPanel extends JPanel {
         if (tile.getStation() == null) return;
         Station s = tile.getStation();
 
+        final int STATION_ITEM_SIZE = 40; 
+        
         if (s instanceof IngredientStorage) {
             IngredientStorage is = (IngredientStorage) s;
-            if (is.getItemOnTop() != null) drawItem(g, is.getItemOnTop(), px + 10, py + 5, 30);
+            if (is.getItemOnTop() != null) drawItem(g, is.getItemOnTop(), px + 5, py + 5, STATION_ITEM_SIZE);
         } else if (s instanceof CookingStation) {
             CookingStation cs = (CookingStation) s;
             if (cs.getDevice() != null && cs.getDevice() instanceof Item) {
-                drawItem(g, (Item) cs.getDevice(), px + 10, py + 5, 30);
+                drawItem(g, (Item) cs.getDevice(), px + 5, py + 5, STATION_ITEM_SIZE);
             }
         } else if (s instanceof CuttingStation) {
-            if (((CuttingStation) s).getItem() != null) drawItem(g, ((CuttingStation) s).getItem(), px + 5, py + 5, 40);
+            if (((CuttingStation) s).getItem() != null) drawItem(g, ((CuttingStation) s).getItem(), px + 5, py + 5, STATION_ITEM_SIZE);
         } else if (s instanceof AssemblyStation) {
-            if (((AssemblyStation) s).getStoredItem() != null) drawItem(g, ((AssemblyStation) s).getStoredItem(), px + 5, py + 5, 40);
+            if (((AssemblyStation) s).getStoredItem() != null) drawItem(g, ((AssemblyStation) s).getStoredItem(), px + 5, py + 5, STATION_ITEM_SIZE);
         } else if (s instanceof WashingStation) {
             WashingStation ws = (WashingStation) s;
             if (ws.getDirtyCount() > 0) {
-                drawImageOrRect(g, "plate", Color.DARK_GRAY, px + 5, py + 20, 20, 20);
+                drawImageOrRect(g, "plate_dirty", Color.DARK_GRAY, px + 5, py + 20, 20, 20);
                 g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 10)); g.drawString("" + ws.getDirtyCount(), px + 5, py + 20);
             }
             if (ws.getCleanCount() > 0) {
-                drawImageOrRect(g, "plate", Color.WHITE, px + 25, py + 20, 20, 20);
-            }
-            if (ws.isWashing()) {
-                g.setColor(Color.CYAN);
-                g.fillRect(px + 5, py - 10, (int) (40 * ws.getProgress() / 100.0), 6);
+                drawImageOrRect(g, "plate_clean", Color.WHITE, px + 25, py + 20, 20, 20);
             }
         }
     }
@@ -410,68 +399,166 @@ public class GameDrawingPanel extends JPanel {
                 drawChefSmooth(g, chef);
             }
         }
+        
+        // --- REVISI SPRINT 2: PROJECTILE SHADOW ---
         if (model.getProjectiles() != null) {
             for (Projectile p : model.getProjectiles()) {
                 if (Math.round(p.getPosition().getY()) == rowY) {
+                    
                     int x = p.getPosition().getX() * TILE_SIZE;
-                    int y = (p.getPosition().getY() * TILE_SIZE) - 20;
-                    drawItem(g, p.getItem(), x + 15, y + 15, 20);
+                    int y = (p.getPosition().getY() * TILE_SIZE); 
+                    int drawY = y - 20; 
+
+                    // Gambar shadow di lantai
+                    int shadowSize = 25;
+                    drawImageOrRect(g, "projectile_shadow", new Color(0, 0, 0, 80), 
+                                    x + 12, y + 5, shadowSize, shadowSize / 2);
+
+                    // Gambar item yang dilempar
+                    drawItem(g, p.getItem(), x + 15, drawY + 15, 20);
                 }
             }
         }
     }
 
+    // --- REVISI SPRINT 2: DRAW CHEF SMOOTH (Arah & Aksi) ---
     private void drawChefSmooth(Graphics2D g, Chef chef) {
         int x = (int) (chef.getWorldX() * TILE_SIZE);
         int y = (int) (chef.getWorldY() * TILE_SIZE);
-        int drawY = y - 15;
-        final int HELD_ITEM_SIZE = 30; // Ukuran item yang dibawa Chef
+        int drawY = y - 15; 
+        final int HELD_ITEM_SIZE = 30; 
         
+        // 1. Tentukan Sprite Key Chef (termasuk Busy State)
+        String chefKey = "chef_default";
+        long time = System.currentTimeMillis();
+        int frame = (int)(time / 150) % 2; // Ganti frame setiap 150ms
+
+        if (chef.isBusy()) {
+            Tile facingTile = chef.getFacingTile(model.getMap());
+            if (facingTile != null && facingTile.getStation() != null) {
+                Station s = facingTile.getStation();
+                
+                if (s instanceof CuttingStation) {
+                    chefKey = "chef_chopping_" + frame; 
+                } else if (s instanceof WashingStation) {
+                    chefKey = "chef_washing_" + frame; 
+                }
+            }
+        } else {
+            // Logika 4 Arah Visual Normal (Up/Down/Left/Right)
+            double dirX = chef.getLastDirX();
+            double dirY = chef.getLastDirY();
+            
+            if (dirX != 0 || dirY != 0) {
+                if (Math.abs(dirX) > Math.abs(dirY)) {
+                    chefKey = (dirX > 0) ? "chef_right" : "chef_left";
+                } else {
+                    chefKey = (dirY > 0) ? "chef_down" : "chef_up";
+                }
+            } 
+            // Jika diam, biarkan chefKey tetap "chef_default"
+        }
+
+        // 2. Gambar Chef (dengan highlight jika aktif)
         if (chef == model.getActiveChef()) {
-            g.setColor(new Color(255, 255, 0, 100));
+            g.setColor(new Color(255, 255, 0, 100)); // Highlight kuning
             g.fillOval(x, y + 10, TILE_SIZE, TILE_SIZE / 3);
         }
-        drawImageOrRect(g, "chef", Color.GREEN, x + 5, drawY, TILE_SIZE - 10, TILE_SIZE - 10);
         
+        drawImageOrRect(g, chefKey, Color.GREEN, x + 5, drawY, TILE_SIZE - 10, TILE_SIZE - 10);
+        
+        // 3. Gambar Item yang dipegang
         if (!chef.getInventory().isEmpty()) {
             drawItem(g, chef.getInventory().getItem(), x + 10, drawY - 20, HELD_ITEM_SIZE);
         }
     }
 
+    // --- REVISI SPRINT 2: DRAW ITEM (Utensil Cooking Visual) ---
     private void drawItem(Graphics g, Item item, int x, int y, int size) {
         if (item == null) return;
+        
         if (item instanceof Plate) {
             Plate p = (Plate) item;
-            drawImageOrRect(g, "plate", p.isClean() ? Color.WHITE : Color.DARK_GRAY, x, y, size, size);
+            String plateKey = p.isClean() ? "plate_clean" : "plate_dirty";
+            drawImageOrRect(g, plateKey, Color.WHITE, x, y, size, size);
+            
             if (!p.isEmpty() && p.getContents().get(0) instanceof Ingredient) {
                 Ingredient ing = (Ingredient) p.getContents().get(0);
-                g.setColor(getColorForIngredient(ing.getType()));
-                g.fillOval(x + size / 4, y + size / 4, size / 2, size / 2);
+                drawIngredientState(g, ing, x, y, size, true); 
             }
         } else if (item instanceof KitchenUtensil) {
             String imgName = (item instanceof BoilingPot) ? "pot" : "pan";
-            drawImageOrRect(g, imgName, Color.GRAY, x, y, size, size);
             KitchenUtensil u = (KitchenUtensil) item;
-            if (!u.isEmpty() && u.getContents().get(0) instanceof Ingredient) {
-                Ingredient ing = (Ingredient) u.getContents().get(0);
-                if (u.isCooking()) {
-                    g.setColor(u.getCookingProgress() > 100 ? Color.RED : Color.GREEN);
-                    g.fillRect(x, y - 5, (int)(size * (Math.min(u.getCookingProgress(),200)/100.0)), 4);
-                }
-                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 10)); g.drawString(ing.getState().getName().substring(0, 2), x + 5, y + 10);
-            }
-        } else if (item instanceof Ingredient) {
-            String ingredientKey = "item_" + ((Ingredient) item).getType().toString();
-            BufferedImage ingredientImg = assets.getImage(ingredientKey);
             
-            if (ingredientImg != null) {
-                drawImageOrRect(g, ingredientKey, Color.RED, x, y, size, size);
-            } else {
-                drawImageOrRect(g, "item_default", Color.RED, x, y, size, size);
+            // FIX SPRINT 2: Ganti sprite jika sedang memasak
+            if (u.isCooking()) {
+                imgName += "_cooking"; 
             }
 
-            Ingredient ing = (Ingredient) item;
-            g.setColor(Color.BLACK); g.setFont(new Font("Arial", Font.BOLD, 10)); g.drawString(ing.getState().getName().substring(0, 3), x, y + size + 10);
+            drawImageOrRect(g, imgName, Color.GRAY, x, y, size, size);
+            
+            if (!u.isEmpty() && u.getContents().get(0) instanceof Ingredient) {
+                Ingredient ing = (Ingredient) u.getContents().get(0);
+                
+                drawIngredientState(g, ing, x, y, size, false); 
+                
+                // ... (Logika progress bar Utensil) ...
+                if (u.isCooking() || u.getCookingProgress() >= 100) {
+                    int progress = u.getCookingProgress(); 
+
+                    final int BAR_WIDTH_MAX = (int) (size * 0.8);
+                    final int BAR_HEIGHT = 4;
+                    int barX = x + (size - BAR_WIDTH_MAX) / 2;
+                    int barY = y - 5; 
+                    float progressRatio = Math.min(progress, 200) / 100.0f; 
+                    int barWidthCurrent = (int) (BAR_WIDTH_MAX * progressRatio);
+
+                    Color barColor;
+                    if (progress >= 200) {
+                        barColor = PROGRESS_RED; 
+                    } else if (progress >= 100) {
+                        barColor = PROGRESS_GREEN; 
+                    } else {
+                        barColor = PROGRESS_YELLOW; 
+                    }
+                    
+                    g.setColor(new Color(0, 0, 0, 100)); 
+                    g.fillRect(barX - 1, barY - 1, BAR_WIDTH_MAX + 2, BAR_HEIGHT + 2);
+
+                    g.setColor(barColor);
+                    g.fillRect(barX, barY, Math.min(barWidthCurrent, BAR_WIDTH_MAX), BAR_HEIGHT); 
+                }
+                
+                g.setColor(Color.WHITE); 
+                g.setFont(new Font("Arial", Font.BOLD, 10)); 
+                g.drawString(ing.getState().getName().substring(0, 3), x + 5, y + 10);
+            }
+        } else if (item instanceof Ingredient) {
+            drawIngredientState(g, (Ingredient) item, x, y, size, false);
+        }
+    }
+    
+    private void drawIngredientState(Graphics g, Ingredient ing, int x, int y, int size, boolean isPlated) {
+        String stateName = ing.getState().getName().toLowerCase(); 
+        String typeName = ing.getType().toString().toLowerCase(); 
+        String ingredientKey = "item_" + typeName + "_" + stateName;
+        
+        int drawSize = isPlated ? (int)(size * 0.5) : size;
+        int drawX = isPlated ? x + (size - drawSize) / 2 : x;
+        int drawY = isPlated ? y + (size - drawSize) / 2 : y;
+        
+        BufferedImage ingredientImg = assets.getImage(ingredientKey);
+        
+        if (ingredientImg != null) {
+            drawImageOrRect(g, ingredientKey, getColorForIngredient(ing.getType()), drawX, drawY, drawSize, drawSize);
+        } else {
+            drawImageOrRect(g, "item_default", getColorForIngredient(ing.getType()), drawX, drawY, drawSize, drawSize);
+        }
+        
+        if (!isPlated) {
+             g.setColor(Color.BLACK); 
+             g.setFont(new Font("Arial", Font.BOLD, 10)); 
+             g.drawString(stateName.substring(0, 3), x, y + size + 10);
         }
     }
 
@@ -523,6 +610,4 @@ public class GameDrawingPanel extends JPanel {
         long seconds = totalSeconds % 60;
         return String.format("%02d:%02d", minutes, seconds);
     }
-
-    // HILANG: public void update(Object gameState) { repaint(); }
 }

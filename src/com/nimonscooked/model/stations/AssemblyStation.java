@@ -13,12 +13,13 @@ public class AssemblyStation extends Station {
         super(x, y);
     }
 
-    // --- METHOD BARU UNTUK PROJECTILE ---
     public Item getStoredItem() { return storedItem; }
     public void setStoredItem(Item item) { this.storedItem = item; }
 
     @Override
     public void interact(Chef chef) {
+        Item heldItem = chef.getInventory().getItem();
+
         // KASUS 1: MEJA KOSONG -> TARUH
         if (storedItem == null) {
             if (!chef.getInventory().isEmpty()) {
@@ -28,30 +29,47 @@ public class AssemblyStation extends Station {
         } 
         // KASUS 2: MEJA ADA BARANG
         else {
-            // 2A. Di meja ada PIRING
+            
+            // FIX BARU: 2A. Di meja ada UTENSIL, Chef bawa PIRING -> SCOOP
+            if (storedItem instanceof KitchenUtensil && heldItem instanceof Plate) {
+                KitchenUtensil utensil = (KitchenUtensil) storedItem;
+                Plate plate = (Plate) heldItem;
+                
+                // Delegasikan ke Utensil (KitchenUtensil.moveContentsTo yang sudah direvisi)
+                utensil.moveContentsTo(plate);
+                return; // Interaksi selesai
+            }
+            
+            // 2B. Di meja ada PIRING
             if (storedItem instanceof Plate) {
                 Plate plate = (Plate) storedItem;
                 
-                // Chef bawa Panci/Wajan -> TUANG
-                if (!chef.getInventory().isEmpty() && chef.getInventory().getItem() instanceof KitchenUtensil) {
-                    KitchenUtensil pot = (KitchenUtensil) chef.getInventory().getItem();
-                    if (!(pot instanceof Plate)) {
-                        pot.moveContentsTo(plate); 
+                // Chef bawa Panci/Wajan -> TUANG ISI (SCOOP)
+                if (heldItem instanceof KitchenUtensil) {
+                    KitchenUtensil pot = (KitchenUtensil) heldItem;
+                    pot.moveContentsTo(plate); 
+                }
+                // Chef bawa Bahan -> TARUH/PASANG BAHAN
+                else if (heldItem instanceof Ingredient) {
+                    Ingredient ing = (Ingredient) chef.getInventory().takeItem();
+                    if (plate.canAccept(ing)) {
+                         plate.addIngredient(ing);
+                    } else {
+                         // Kembalikan item jika tidak bisa diterima
+                         chef.getInventory().setItem(ing); 
+                         System.out.println("Plate cannot accept item (Dirty or Full).");
                     }
                 }
-                // Chef bawa Bahan -> TARUH
-                else if (!chef.getInventory().isEmpty() && chef.getInventory().getItem() instanceof Ingredient) {
-                    plate.addIngredient((Ingredient) chef.getInventory().takeItem());
-                }
+                
                 // Chef tangan kosong -> AMBIL PIRING
-                else if (chef.getInventory().isEmpty()) {
+                else if (heldItem == null) {
                     chef.getInventory().setItem(plate);
                     storedItem = null;
                 }
             }
-            // 2B. Di meja bukan piring -> AMBIL
+            // 2C. Di meja bukan piring/Utensil (kasus lain) -> AMBIL
             else {
-                if (chef.getInventory().isEmpty()) {
+                if (heldItem == null) {
                     chef.getInventory().setItem(storedItem);
                     storedItem = null;
                 }
