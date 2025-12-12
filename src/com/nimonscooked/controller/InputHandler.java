@@ -2,77 +2,113 @@ package com.nimonscooked.controller;
 
 import com.nimonscooked.model.entities.Chef;
 import com.nimonscooked.model.logic.GameModel;
-import com.nimonscooked.utils.Direction;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class InputHandler extends KeyAdapter {
     
+    // Status Tombol (Apakah sedang ditekan?)
+    private boolean up, down, left, right;
     @Override
     public void keyPressed(KeyEvent e) {
         GameModel model = GameModel.getInstance();
-        int key = e.getKeyCode();
         boolean isPaused = model.isPaused();
-        // --- 1. HANDLING GAME OVER ---
-        if (model.isGameOver()) {
-            // Saat Game Over, tombol 'R' melakukan Restart pada Stage yang sama
-            if (key == KeyEvent.VK_R) {
-                System.out.println("Restarting Game...");
-                // FIX: Gunakan getCurrentStageId(), bukan boolean false
-                model.resetGame(model.getCurrentStageId()); 
-            }
-            return; // Blokir input lain
+        int key = e.getKeyCode();
+
+        // 0. PAUSE TOGGLE (Selalu aktif kecuali Game Over)
+        if (key == KeyEvent.VK_ESCAPE && !model.isGameOver()) {
+            // Kita tidak perlu resetInputFlags di sini karena togglePause() sudah memanggil activeChef.stopMovement()
+            model.togglePause();
+            return;
         }
         if (isPaused && key != KeyEvent.VK_ESCAPE) {
-            return;
-            
+            return; // Jangan proses input lain saat dijeda
         }
-        // --- 2. HANDLING GAMEPLAY NORMAL ---
+        
+        // 1. GAME OVER (Restart)
+        if (model.isGameOver()) {
+            if (key == KeyEvent.VK_R) {
+                // Biarkan GameWindow/ResultPanel yang menangani restart melalui callback
+            }
+            return;
+        }
+        
+        // 2. JIKA GAME DIJEDA, JANGAN PROSES INPUT LAINNYA
+        
+
+
+        // 3. GAMEPLAY
         Chef activeChef = model.getActiveChef();
         if (activeChef == null) return;
 
-        // Movement (WASD)
-        if (key == KeyEvent.VK_W) {
-            activeChef.move(Direction.UP, model.getMap());
-        } else if (key == KeyEvent.VK_S) {
-            activeChef.move(Direction.DOWN, model.getMap());
-        } else if (key == KeyEvent.VK_A) {
-            activeChef.move(Direction.LEFT, model.getMap());
-        } else if (key == KeyEvent.VK_D) {
-            activeChef.move(Direction.RIGHT, model.getMap());
-        }
+        // --- MOVEMENT (Set Flag True) ---
+        if (key == KeyEvent.VK_W) up = true;
+        else if (key == KeyEvent.VK_S) down = true;
+        else if (key == KeyEvent.VK_A) left = true;
+        else if (key == KeyEvent.VK_D) right = true;
+
+        // --- ACTIONS (Trigger Sekali) ---
         
-        // Interact / Pick / Drop (Space)
+        // Interact (Space / V / C)
         else if (key == KeyEvent.VK_SPACE || key == KeyEvent.VK_V || key == KeyEvent.VK_C) {
             activeChef.interact(model.getMap());
         }
         
-        // Switch Chef (Tab / B)
-        else if (key == KeyEvent.VK_B || key == KeyEvent.VK_TAB) {
-            model.switchChef();
-        }
-        
-        // Dash (Shift)
-        else if (key == KeyEvent.VK_SHIFT) {
-            activeChef.dash();
-        }
-        
-        // Throw (F)
+        // Throw Item (F)
         else if (key == KeyEvent.VK_F) {
             activeChef.throwItem();
         }
         
-        // Debug Restart (R) saat main biasa
+        // Dash (Shift) - Trigger sprint
+        else if (key == KeyEvent.VK_SHIFT) {
+            activeChef.dash();
+        }
+        
+        // Switch Chef (Tab / B)
+        else if (key == KeyEvent.VK_TAB || key == KeyEvent.VK_B) {
+            resetInputFlags();
+            activeChef.stopMovement();
+            model.switchChef();
+        }
+        
+        // Restart Manual (R)
         else if (key == KeyEvent.VK_R) {
-             // FIX: Gunakan getCurrentStageId() juga di sini
             model.resetGame(model.getCurrentStageId());
         }
-        // Debug Escape (Esc) saat main biasa
-        else if (key == KeyEvent.VK_ESCAPE) {
-            model.togglePause();
+
+        // Update Input ke Chef
+        if (model.getActiveChef() != null) {
+            model.getActiveChef().setMovementInput(up, down, left, right);
         }
-        // Update View
-        model.notifyObservers();
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        GameModel model = GameModel.getInstance();
+        // FIX: Hanya proses keyReleased jika game tidak dijeda atau game over
+        if (model.isGameOver() || model.isPaused()) return; 
+        
+        Chef activeChef = model.getActiveChef();
+        if (activeChef == null) return;
+
+        int key = e.getKeyCode();
+
+        // --- MOVEMENT (Set Flag False) ---
+        if (key == KeyEvent.VK_W) up = false;
+        else if (key == KeyEvent.VK_S) down = false;
+        else if (key == KeyEvent.VK_A) left = false;
+        else if (key == KeyEvent.VK_D) right = false;
+
+        // Update Input ke Chef
+        activeChef.setMovementInput(up, down, left, right);
+    }
+    
+    // Helper untuk mereset tombol saat ganti chef/restart
+    private void resetInputFlags() {
+        up = false;
+        down = false;
+        left = false;
+        right = false;
     }
 }

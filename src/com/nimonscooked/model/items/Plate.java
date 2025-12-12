@@ -1,7 +1,6 @@
 package com.nimonscooked.model.items;
 
 import com.nimonscooked.core.Preparable;
-import java.util.ArrayList;
 
 public class Plate extends KitchenUtensil {
     
@@ -9,7 +8,7 @@ public class Plate extends KitchenUtensil {
 
     public Plate() {
         super("Plate"); 
-        this.isClean = true; // Default bersih saat diambil
+        this.isClean = true; 
     }
 
     public boolean isClean() {
@@ -32,24 +31,9 @@ public class Plate extends KitchenUtensil {
     @Override
     public void addIngredient(Preparable item) {
         if (isClean) {
-            // Panggil method induk yang baru saja kita tambahkan
             super.addIngredient(item);
         } else {
             System.out.println("Cannot place food on a dirty plate!");
         }
     }
-
-    // // --- FIX ERROR: IMPLEMENTASI METHOD YANG HILANG ---
-
-    // // 1. Implementasi isPortable (Wajib return true untuk Piring)
-    // @Override
-    // public boolean isPortable() {
-    //     return true; 
-    // }
-
-    // // 2. Implementasi capacity (Tentukan batas maksimal piring, misal 10)
-    // @Override
-    // public int capacity() {
-    //     return 10; 
-    // }
 }

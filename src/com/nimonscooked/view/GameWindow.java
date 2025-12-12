@@ -7,6 +7,8 @@ import com.nimonscooked.model.logic.GameModel;
 import javax.swing.*;
 import java.awt.*;
 
+import java.util.function.Consumer;
+
 public class GameWindow extends JFrame implements GameObserver {
 
     private CardLayout cardLayout;
@@ -15,12 +17,11 @@ public class GameWindow extends JFrame implements GameObserver {
     // Panels
     private MainMenuPanel menuPanel;
     private StageSelectPanel stageSelectPanel;
-    private ResultPanel resultPanel;
+    private ResultPanel resultPanel; 
     
-    // Game Container (Game + Order UI)
+    // Game Container
     private JPanel gameContainer;
-    private GamePanel gamePanel;
-    private OrderPanel orderPanel;
+    private GamePanel gamePanel; // GamePanel sekarang adalah JLayeredPane Wrapper
     
     private InputHandler inputHandler;
 
@@ -29,7 +30,7 @@ public class GameWindow extends JFrame implements GameObserver {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
 
-        // 1. Observer Model (Untuk deteksi Game Over otomatis)
+        // 1. Observer Model
         GameModel.getInstance().addObserver(this);
 
         // 2. Setup CardLayout
@@ -48,6 +49,9 @@ public class GameWindow extends JFrame implements GameObserver {
         add(mainContainer);
         pack();
         setLocationRelativeTo(null); 
+        
+        // Show initial screen
+        cardLayout.show(mainContainer, "MENU");
 
         // 5. Input Handler
         this.inputHandler = new InputHandler();
@@ -57,59 +61,72 @@ public class GameWindow extends JFrame implements GameObserver {
     }
 
     private void initPanels() {
+        // --- GAME CONTROLS (Callbacks Baru) ---
+        
+        // Callback: Pindah ke Main Menu
+        Runnable goToMenu = () -> {
+            // FIX: Pastikan game tidak dalam mode pause saat kembali ke menu
+            if (GameModel.getInstance().isPaused()) {
+                 GameModel.getInstance().togglePause();
+            }
+            cardLayout.show(mainContainer, "MENU");
+            requestFocusInWindow();
+        };
+        
+        // Callback: Restart Stage (Digunakan ResultPanel & PausePanel)
+        Runnable onRestartGame = () -> {
+             // Dapatkan Stage ID sebelum di-reset model
+            int currentStageId = GameModel.getInstance().getCurrentStageId();
+            startGame(currentStageId);
+        };
+        
+        // Callback: Start Game dari StageSelectPanel
+        Consumer<Integer> onStartGame = (stageId) -> {
+            startGame(stageId);
+        };
+        
         // --- MENU ---
         menuPanel = new MainMenuPanel(
-            () -> cardLayout.show(mainContainer, "STAGE_SELECT") // Go to Stage Select
+            () -> cardLayout.show(mainContainer, "STAGE_SELECT") 
         );
 
         // --- STAGE SELECT ---
         stageSelectPanel = new StageSelectPanel(
-            (stageId) -> startGame(stageId), // On Stage Selected
-            () -> cardLayout.show(mainContainer, "MENU") // On Back
+            onStartGame, 
+            goToMenu 
         );
 
         // --- GAME CONTAINER ---
         gameContainer = new JPanel(new BorderLayout());
-        gamePanel = new GamePanel();
-        orderPanel = new OrderPanel();
+        // REVISI: GamePanel menerima callback untuk Pause Menu
+        gamePanel = new GamePanel(onRestartGame, goToMenu); 
         gameContainer.add(gamePanel, BorderLayout.CENTER);
-        gameContainer.add(orderPanel, BorderLayout.EAST);
 
         // --- RESULT ---
+        // REVISI: ResultPanel menggunakan onRestartGame yang baru
         resultPanel = new ResultPanel(
-            () -> startGame(GameModel.getInstance().getCurrentStageId()), // Retry
-            () -> cardLayout.show(mainContainer, "MENU") // Back to Menu
+            onRestartGame, // Retry
+            goToMenu // Back to Menu
         );
     }
 
     private void startGame(int stageId) {
         GameModel.getInstance().resetGame(stageId);
         cardLayout.show(mainContainer, "GAME");
-        this.requestFocusInWindow();
+        this.requestFocusInWindow(); 
     }
 
     // --- GAME OBSERVER IMPLEMENTATION ---
     @Override
     public void update(Object arg) {
-        // Cek jika Game Model memberi sinyal Game Over
         GameModel model = GameModel.getInstance();
         
-        // Kita cek apakah panel yang sedang aktif adalah GAME
-        // (Agar tidak switch berulang-ulang)
-        // Namun, karena model hanya set isGameOver sekali, kita bisa cek flagnya.
-        
         if (model.isGameOver()) {
-            // Kita beri sedikit delay atau langsung pindah ke result screen
-            // Tapi karena update dipanggil berkali-kali, kita harus pastikan
-            // kita belum di result screen.
-            
-            // Cara aman: ResultPanel update data, lalu switch.
-            // Cek apakah ResultPanel sudah tampil? Tidak mudah di CardLayout.
-            // Jadi kita trigger showResult jika belum.
-            
-            if (!resultPanel.isShowing()) {
-                resultPanel.updateResult();
-                cardLayout.show(mainContainer, "RESULT");
+            // Logic transisi ke Result Panel
+            if (resultPanel.isVisible() == false) {
+                 // resultPanel.updateResult(); // Panggil method update data di ResultPanel
+                 cardLayout.show(mainContainer, "RESULT");
+                 requestFocusInWindow();
             }
         }
     }

@@ -28,11 +28,9 @@ public class AssetManager {
     }
 
     private void loadAllImages() {
-        // 1. Environment
+        // --- MEMUAT ASET LAMA ---
         load("wall", "resources/images/wall.png");
         load("floor", "resources/images/floor.png");
-        
-        // 2. Stations Umum
         load("station_cutting", "resources/images/station_cutting.png");
         load("station_stove", "resources/images/station_stove.png");
         load("station_serving", "resources/images/station_serving.png");
@@ -41,20 +39,16 @@ public class AssetManager {
         load("station_wash", "resources/images/station_wash.png");
         load("station_trash", "resources/images/station_trash.png");
 
-        // 3. Storage Spesifik (Pastikan nama file PNG sesuai dengan Enum IngredientType)
         load("storage_PASTA", "resources/images/storage_PASTA.png");
         load("storage_TOMATO", "resources/images/storage_TOMATO.png");
         load("storage_MEAT", "resources/images/storage_MEAT.png");
         load("storage_SHRIMP", "resources/images/storage_SHRIMP.png");
         load("storage_FISH", "resources/images/storage_FISH.png");
         
-        // 4. Entities & Items
         load("chef", "resources/images/chef.png");
         load("pot", "resources/images/pot.png");
         load("pan", "resources/images/pan.png");
         load("plate", "resources/images/plate.png");
-        
-        // Item default (tomatcherry/bola merah)
         load("item_default", "resources/images/item_tomato.png");
         
         // Item spesifik (Jika Anda punya gambarnya, aktifkan baris ini)
@@ -89,6 +83,14 @@ public class AssetManager {
         load("startPressed", "images/main_menu/start_game(3).png");
         load("helpPressed", "images/main_menu/how_to_play(3).png");
         load("exitPressed", "images/main_menu/exit(3).png");
+        load("ui_coin", "images/ui_coin.png");      // [ASSET: ui_coin.png]
+        load("ui_timer", "images/ui_timer.png");
+        load("ui_clothespin", "images/ui_clothespin.png"); // [ASSET: ui_clothespin.png]
+        load("ui_icon_o", "images/ui_icon_o.png");          // [ASSET: ui_icon_o.png]
+        load("ui_icon_x", "images/ui_icon_x.png");
+        load("pasta_marinara", "images/dish_marinara.png"); 
+        load("pasta_bolognese", "images/dish_bolognese.png"); 
+        load("pasta_frutti_di_mare", "images/dish_frutti_di_mare.png"); 
 
     }
 

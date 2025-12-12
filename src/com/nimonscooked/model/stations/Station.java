@@ -9,6 +9,5 @@ public abstract class Station extends GameObject {
         super(x, y);
     }
 
-    // Method interaksi wajib (Abstract)
     public abstract void interact(Chef chef);
 }
