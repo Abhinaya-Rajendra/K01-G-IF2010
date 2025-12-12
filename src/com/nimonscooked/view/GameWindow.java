@@ -28,7 +28,7 @@ public class GameWindow extends JFrame implements GameObserver {
     public GameWindow() {
         setTitle("Nimonscooked - Tugas Besar OOP");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(true);
+        setResizable(true); // Pastikan ini true agar bisa di-maximize
 
         // 1. Observer Model
         GameModel.getInstance().addObserver(this);
@@ -47,6 +47,8 @@ public class GameWindow extends JFrame implements GameObserver {
         mainContainer.add(resultPanel, "RESULT");
 
         add(mainContainer);
+        
+        // HANYA PANGGIL pack() SATU KALI DI SINI
         pack(); 
         setLocationRelativeTo(null); 
         
@@ -68,7 +70,10 @@ public class GameWindow extends JFrame implements GameObserver {
                 GameModel.getInstance().togglePause();
             }
             cardLayout.show(mainContainer, "MENU");
-            pack(); 
+            
+            // HAPUS: pack(); <- JANGAN DIPANGGIL LAGI
+            
+            // Pastikan fokus kembali ke window agar keyboard bisa dipakai di menu (jika ada navigasi keyboard)
             requestFocusInWindow();
         };
         
@@ -85,7 +90,7 @@ public class GameWindow extends JFrame implements GameObserver {
         menuPanel = new MainMenuPanel(
             () -> {
                 cardLayout.show(mainContainer, "STAGE_SELECT");
-                pack(); 
+                // HAPUS: pack(); 
             }
         );
 
@@ -109,8 +114,13 @@ public class GameWindow extends JFrame implements GameObserver {
 
     private void startGame(int stageId) {
         GameModel.getInstance().resetGame(stageId);
+        
+        // Ganti tampilan ke Game
         cardLayout.show(mainContainer, "GAME");
-        pack(); 
+        
+        // HAPUS: pack(); <- INI YANG MEMBUAT WINDOW KEMBALI KECIL
+        
+        // Sangat Penting: Fokuskan agar InputHandler bisa menangkap keyboard
         this.requestFocusInWindow(); 
     }
 
@@ -121,14 +131,12 @@ public class GameWindow extends JFrame implements GameObserver {
         
         if (model.isGameOver()) {
             // Logic transisi ke Result Panel
-            if (resultPanel.isVisible() == false) {
+            if (!resultPanel.isVisible()) { // Cek sederhananya begini
                 
-                // FIX: Panggil updateResult() segera sebelum pindah ke RESULT card
                 resultPanel.updateResult(); 
-                
                 cardLayout.show(mainContainer, "RESULT");
                 
-                pack(); 
+                // HAPUS: pack(); 
                 requestFocusInWindow();
             }
         }

@@ -60,11 +60,19 @@ public class GameDrawingPanel extends JPanel {
 
         Graphics2D g2d = (Graphics2D) g;
 
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+        // Matikan Antialiasing untuk performa & gaya pixel art yang tajam
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); // Text tetap halus gapapa
+        
+        // KRISIAL: Ganti ke NEAREST_NEIGHBOR untuk kecepatan maksimal saat scaling
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+
+        // g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        // g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        // g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        // g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
 
         int w = getWidth();
         int h = getHeight();
@@ -327,7 +335,7 @@ public class GameDrawingPanel extends JPanel {
         int blockH = 15; // Efek 3D tembok
 
         if (tile.isWall() || tile.getStation() != null) {
-            g.setColor(new Color(0, 0, 0, 50));
+            g.setColor(new Color(255, 255, 0, 50));
             g.fillRect(px, py + TILE_SIZE - blockH, TILE_SIZE, blockH);
 
             String imgKey = "wall";
@@ -451,7 +459,7 @@ public class GameDrawingPanel extends JPanel {
     private void drawChefSmooth(Graphics2D g, Chef chef) {
         int x = (int) (chef.getWorldX() * TILE_SIZE);
         int y = (int) (chef.getWorldY() * TILE_SIZE);
-        int drawY = y - 15; 
+        int drawY = y - 5; 
         final int HELD_ITEM_SIZE = 30; 
         
         // 1. Tentukan Sprite Key Chef (termasuk Busy State)
@@ -495,7 +503,12 @@ public class GameDrawingPanel extends JPanel {
         
         // 3. Gambar Item yang dipegang
         if (!chef.getInventory().isEmpty()) {
-            drawItem(g, chef.getInventory().getItem(), x + 10, drawY - 20, HELD_ITEM_SIZE);
+            if (chef.getInventory().getItem() instanceof BoilingPot){
+                drawItem(g, chef.getInventory().getItem(), x + 10, drawY - 8, HELD_ITEM_SIZE);
+            }
+            else {
+                drawItem(g, chef.getInventory().getItem(), x + 10, drawY - 20, HELD_ITEM_SIZE);
+            }
         }
     }
 
@@ -532,20 +545,41 @@ private void drawItem(Graphics g, Item item, int x, int y, int size) {
             }
         }
     } else if (item instanceof KitchenUtensil) {
-        String imgName = (item instanceof BoilingPot) ? "pot" : "pan";
-        KitchenUtensil u = (KitchenUtensil) item;
+        if (item instanceof BoilingPot){
+            String imgName = "pot";
+            KitchenUtensil u = (KitchenUtensil) item;
         
         // FIX SPRINT 2: Ganti sprite jika sedang memasak
-        if (u.isCooking()) {
-            imgName += "_cooking"; 
+            if (u.isCooking()) {
+                imgName += "_cooking"; 
+            }
+
+            drawImageOrRect(g, imgName, Color.GRAY, x, y-10, size, size);
         }
 
-        drawImageOrRect(g, imgName, Color.GRAY, x, y, size, size);
+        if (item instanceof FryingPan){
+            String imgName = "pan";
+            KitchenUtensil u = (KitchenUtensil) item;
+        
+        // FIX SPRINT 2: Ganti sprite jika sedang memasak
+            if (u.isCooking()) {
+                imgName += "_cooking"; 
+            }
+
+            drawImageOrRect(g, imgName, Color.GRAY, x+3, y, size, size);
+        }
+
+        KitchenUtensil u = (KitchenUtensil) item;
         
         if (!u.isEmpty() && u.getContents().get(0) instanceof Ingredient) {
             Ingredient ing = (Ingredient) u.getContents().get(0);
             
-            drawIngredientState(g, ing, x, y, size, false); 
+            if (u instanceof BoilingPot){
+                drawIngredientState(g, ing, x+3, y-9, (int) (size * 0.8), false); 
+            }
+            else if (u instanceof FryingPan){
+                drawIngredientState(g, ing, x+3, y, (int) (size * 0.8), false); 
+            }
             
             // ... (Logika progress bar Utensil) ...
             if (u.isCooking() || u.getCookingProgress() >= 100) {

@@ -5,6 +5,7 @@ import com.nimonscooked.model.entities.Chef;
 import com.nimonscooked.model.entities.Projectile;
 import com.nimonscooked.model.stations.PlateStorage;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -47,7 +48,7 @@ public class GameModel {
     private boolean isStagePassed = false;
     private int failedOrdersCount = 0;
     private final int MAX_FAILED_ORDERS = 5; 
-    private final int GAME_DURATION_LIMIT = 120; 
+    private final int GAME_DURATION_LIMIT = 100; 
     
     private int currentStageId = 1;
     private int targetScore = 0;
@@ -66,7 +67,7 @@ public class GameModel {
         this.gameStartTime = System.currentTimeMillis(); 
         this.observers = new ArrayList<>();
         this.projectiles = new ArrayList<>();
-        this.orderManager = new OrderManager();
+        // this.orderManager = new OrderManager(); // Dipindah ke resetGame
         this.pendingPlates = new ArrayList<>();
         this.plateStorages = new ArrayList<>();
         this.chefs = new ArrayList<>();
@@ -220,16 +221,26 @@ public class GameModel {
         this.timePaused = 0; 
         this.pauseStartTime = 0;
         this.activeStations.clear();
-
+        
+        // REVISI: Init OrderManager SEBELUM Map, karena Map generator butuh resep
+        this.orderManager = new OrderManager();
+        
         boolean isRandomMap = (stageId == 2);
         this.targetScore = (stageId == 1) ? 150 : 200; 
         
-        this.map = new Map(isRandomMap);
+        this.map = new Map(isRandomMap); // Map dibuat setelah OrderManager siap
         this.gameStartTime = System.currentTimeMillis();
         
         this.chefs.clear();
-        this.chefs.add(new Chef(2, 4));
-        this.chefs.add(new Chef(11, 4));
+        
+        // REVISI: Menggunakan Dynamic Spawn Point dari Map
+        // Agar chef tidak terjebak di dalam tembok jika map random
+        Point spawn1 = map.getSpawnPoint(0);
+        Point spawn2 = map.getSpawnPoint(1);
+        
+        this.chefs.add(new Chef(spawn1.x, spawn1.y));
+        this.chefs.add(new Chef(spawn2.x, spawn2.y));
+        
         this.activeChefIndex = 0;
         
         this.projectiles.clear();
@@ -238,7 +249,6 @@ public class GameModel {
         this.map.registerStations(this); 
         
         this.score = 0;
-        this.orderManager = new OrderManager();
         notifyObservers();
     }
     
