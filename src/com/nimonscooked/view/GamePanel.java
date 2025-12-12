@@ -89,8 +89,32 @@ public class GamePanel extends JPanel implements GameObserver {
         if (model.isGameOver()) {
             drawGameOverScreen(g2d);
         }
+        if (model.isPaused()) {
+            drawPausedScreen(g2d);
+        }
     }
+    private void drawPausedScreen(Graphics2D g) {
+        int w = getWidth();
+        int h = getHeight();
 
+        // 1. Overlay Hitam Transparan
+        g.setColor(new Color(0, 0, 0, 150)); 
+        g.fillRect(0, 0, w, h);
+
+        // 2. Teks "PAUSED"
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 60));
+        drawCenteredString(g, "PAUSED", w, h / 2 - 50);
+
+        // 3. Instruksi Lanjutkan
+        g.setColor(Color.YELLOW);
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        
+        // Animasi kedip sederhana
+        if (System.currentTimeMillis() / 500 % 2 == 0) {
+            drawCenteredString(g, "Press 'Esc' to Resume", w, h / 2 + 60);
+        }
+    }
     // --- GAME OVER SCREEN ---
     private void drawGameOverScreen(Graphics2D g) {
         int w = getWidth();
@@ -419,6 +443,7 @@ public class GamePanel extends JPanel implements GameObserver {
 
     @Override
     public void update(Object gameState) {
+
         repaint();
     }
 }

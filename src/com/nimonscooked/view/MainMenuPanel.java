@@ -43,17 +43,17 @@ public class MainMenuPanel extends JPanel {
         add(spacer, gbc);
         gbc.gridy++;
         // Gantilah ini: startButton = createButton("Start Game"); 
-        startButton = createButton("start","startHover", "startPressed", () -> goToStageSelect.run(), 380, 100); 
+        startButton = AssetManager.getInstance().createButton("start","startHover", "startPressed", () -> goToStageSelect.run(), 380, 100); 
         add(startButton, gbc);
 
         gbc.gridy++;
         // Gantilah ini: helpButton = createButton("How to Play");
-        helpButton = createButton("help", "helpHover", "helpPressed",() -> showHelpDialog(), 380, 100); 
+        helpButton = AssetManager.getInstance().createButton("help", "helpHover", "helpPressed",() -> showHelpDialog(), 380, 100); 
         add(helpButton, gbc);
 
         gbc.gridy++;
         // Gantilah ini: exitButton = createButton("Exit");
-        exitButton = createButton("exit", "exitHover", "exitPressed",() -> System.exit(0), 380, 100);
+        exitButton = AssetManager.getInstance().createButton("exit", "exitHover", "exitPressed",() -> System.exit(0), 380, 100);
         add(exitButton, gbc);
     }
 
@@ -102,59 +102,5 @@ public class MainMenuPanel extends JPanel {
 
     // Di dalam class MainMenuPanel
 
-private JButton createButton(String defaultAsset, 
-                                 String hoverAsset, 
-                                 String pressedAsset, 
-                                 Runnable action,
-                                 int targetWidth, 
-                                 int targetHeight) {
-    
-    BufferedImage defaultImg = AssetManager.getInstance().getImage(defaultAsset);
-    BufferedImage hoverImg = AssetManager.getInstance().getImage(hoverAsset);
-    BufferedImage pressedImg = AssetManager.getInstance().getImage(pressedAsset);
-    
-    if (defaultImg == null) {
-        // ... (Kode fallback tetap ada)
-        return new JButton(defaultAsset); 
-    }
-    
-    // --- LANGKAH PENTING: SKALA SEMUA GAMBAR SECARA TERPISAH ---
 
-    // 1. Skala Gambar Default dan buat Icon
-    Image scaledDefault = defaultImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
-    ImageIcon defaultIcon = new ImageIcon(scaledDefault);
-    
-    JButton btn = new JButton(defaultIcon); 
-    
-    // 2. Skala Gambar Hover dan atur RolloverIcon
-    if (hoverImg != null) {
-        Image scaledHover = hoverImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
-        ImageIcon hoverIcon = new ImageIcon(scaledHover);
-        btn.setRolloverIcon(hoverIcon); 
-    }
-    
-    // 3. Skala Gambar Pressed dan atur PressedIcon
-    if (pressedImg != null) {
-        Image scaledPressed = pressedImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
-        ImageIcon pressedIcon = new ImageIcon(scaledPressed);
-        btn.setPressedIcon(pressedIcon); 
-    }
-    
-    // --- PENGATURAN UKURAN KETAT ---
-    
-    btn.setBorderPainted(false); 
-    btn.setContentAreaFilled(false); 
-    btn.setFocusPainted(false); 
-    
-    
-    Dimension fixedSize = new Dimension(targetWidth, targetHeight);
-    btn.setPreferredSize(fixedSize); 
-    btn.setMinimumSize(fixedSize); 
-    btn.setMaximumSize(fixedSize); 
-
-    btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    btn.addActionListener(e -> action.run());
-    
-    return btn;
-}
 }

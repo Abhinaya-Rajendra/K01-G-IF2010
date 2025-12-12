@@ -25,8 +25,10 @@ public class GameModel {
     private int score = 0;
     private long lastTickTime = 0;
     private long gameStartTime;
-
+    private long pauseStartTime;
+    
     // --- GAME OVER & STAGE LOGIC ---
+    private boolean isPaused = false;
     private boolean isGameOver = false;
     private boolean isStagePassed = false;
     private int failedOrdersCount = 0;
@@ -51,6 +53,7 @@ public class GameModel {
     private GameModel() {
         // Init awal (Default Stage 1)
         this.gameStartTime = System.currentTimeMillis(); 
+        this.pauseStartTime = 0;
         this.observers = new ArrayList<>();
         this.projectiles = new ArrayList<>();
         this.orderManager = new OrderManager();
@@ -75,6 +78,10 @@ public class GameModel {
     }
 
     public long getGameDuration() {
+        if (isPaused) { 
+            long elapsed = pauseStartTime - gameStartTime;
+            return elapsed / 1000;
+        }
         if (isGameOver) {
             long elapsed = (System.currentTimeMillis() - gameStartTime) / 1000;
             return Math.min(elapsed, GAME_DURATION_LIMIT); 
@@ -163,7 +170,7 @@ public class GameModel {
     public int getMaxFailedOrders() { return MAX_FAILED_ORDERS; }
 
     private void updateGame() {
-        if (isGameOver) return; 
+        if (isGameOver||isPaused) return; 
         if (map == null) return;
         
         checkTimeLimit(); 
@@ -214,7 +221,27 @@ public class GameModel {
         if (chefs.isEmpty()) return null;
         return chefs.get(activeChefIndex);
     }
+
+    public void togglePause() {
+        if(isGameOver) return;
+        this.isPaused = !this.isPaused;
+        if (this.isPaused) {
+            gameLoop.stop(); 
+            this.pauseStartTime = System.currentTimeMillis();
+            
+            System.out.println("Game Paused.");
+        } else {
+            long pausedDuration = System.currentTimeMillis() - this.pauseStartTime;
+            this.gameStartTime += pausedDuration;
+            this.pauseStartTime = 0;
+            gameLoop.start();
+            System.out.println("Game Resumed.");
+        }
+        notifyObservers();
+        
+    }
     
+    public boolean isPaused() { return isPaused; }
     public List<Chef> getChefs() { return chefs; }
     public Map getMap() { return map; }
     public void addObserver(GameObserver observer) { observers.add(observer); }

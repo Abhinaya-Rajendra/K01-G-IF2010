@@ -13,7 +13,7 @@ public class InputHandler extends KeyAdapter {
     public void keyPressed(KeyEvent e) {
         GameModel model = GameModel.getInstance();
         int key = e.getKeyCode();
-
+        boolean isPaused = model.isPaused();
         // --- 1. HANDLING GAME OVER ---
         if (model.isGameOver()) {
             // Saat Game Over, tombol 'R' melakukan Restart pada Stage yang sama
@@ -24,7 +24,10 @@ public class InputHandler extends KeyAdapter {
             }
             return; // Blokir input lain
         }
-
+        if (isPaused && key != KeyEvent.VK_ESCAPE) {
+            return;
+            
+        }
         // --- 2. HANDLING GAMEPLAY NORMAL ---
         Chef activeChef = model.getActiveChef();
         if (activeChef == null) return;
@@ -65,7 +68,10 @@ public class InputHandler extends KeyAdapter {
              // FIX: Gunakan getCurrentStageId() juga di sini
             model.resetGame(model.getCurrentStageId());
         }
-        
+        // Debug Escape (Esc) saat main biasa
+        else if (key == KeyEvent.VK_ESCAPE) {
+            model.togglePause();
+        }
         // Update View
         model.notifyObservers();
     }

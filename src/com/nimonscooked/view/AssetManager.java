@@ -1,7 +1,10 @@
 package com.nimonscooked.view;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+
 // import java.io.File; // <-- HAPUS INI
 import java.io.IOException;
 import java.io.InputStream; // <-- TAMBAHKAN INI
@@ -119,8 +122,65 @@ public class AssetManager {
         }
     }
 
+
     // --- INI METHOD YANG DICARI OLEH GAMEPANEL ---
     public BufferedImage getImage(String name) {
         return images.get(name);
     }
+
+    public JButton createButton(String defaultAsset, 
+                                 String hoverAsset, 
+                                 String pressedAsset, 
+                                 Runnable action,
+                                 int targetWidth, 
+                                 int targetHeight) {
+    
+    BufferedImage defaultImg = AssetManager.getInstance().getImage(defaultAsset);
+    BufferedImage hoverImg = AssetManager.getInstance().getImage(hoverAsset);
+    BufferedImage pressedImg = AssetManager.getInstance().getImage(pressedAsset);
+    
+    if (defaultImg == null) {
+        // ... (Kode fallback tetap ada)
+        return new JButton(defaultAsset); 
+    }
+    
+    // --- LANGKAH PENTING: SKALA SEMUA GAMBAR SECARA TERPISAH ---
+
+    // 1. Skala Gambar Default dan buat Icon
+    Image scaledDefault = defaultImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+    ImageIcon defaultIcon = new ImageIcon(scaledDefault);
+    
+    JButton btn = new JButton(defaultIcon); 
+    
+    // 2. Skala Gambar Hover dan atur RolloverIcon
+    if (hoverImg != null) {
+        Image scaledHover = hoverImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+        ImageIcon hoverIcon = new ImageIcon(scaledHover);
+        btn.setRolloverIcon(hoverIcon); 
+    }
+    
+    // 3. Skala Gambar Pressed dan atur PressedIcon
+    if (pressedImg != null) {
+        Image scaledPressed = pressedImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+        ImageIcon pressedIcon = new ImageIcon(scaledPressed);
+        btn.setPressedIcon(pressedIcon); 
+    }
+    
+    // --- PENGATURAN UKURAN KETAT ---
+    
+    btn.setBorderPainted(false); 
+    btn.setContentAreaFilled(false); 
+    btn.setFocusPainted(false); 
+    
+    
+    Dimension fixedSize = new Dimension(targetWidth, targetHeight);
+    btn.setPreferredSize(fixedSize); 
+    btn.setMinimumSize(fixedSize); 
+    btn.setMaximumSize(fixedSize); 
+
+    btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    btn.addActionListener(e -> action.run());
+    
+    return btn;
+}
 }
