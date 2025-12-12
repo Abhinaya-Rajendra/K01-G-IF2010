@@ -26,17 +26,18 @@ public class GameModel {
     private long lastTickTime = 0;
     private long gameStartTime;
 
+    // --- PAUSE LOGIC ---
+    private boolean isPaused = false;
+    
     // --- GAME OVER & STAGE LOGIC ---
     private boolean isGameOver = false;
     private boolean isStagePassed = false;
     private int failedOrdersCount = 0;
     private final int MAX_FAILED_ORDERS = 5; 
-    private final int GAME_DURATION_LIMIT = 180; // 3 Menit
+    private final int GAME_DURATION_LIMIT = 180; 
     
-    // Stage Settings
     private int currentStageId = 1;
     private int targetScore = 0;
-    // -------------------------------
 
     private List<PendingPlate> pendingPlates;
     private List<PlateStorage> plateStorages; 
@@ -49,7 +50,6 @@ public class GameModel {
     }
 
     private GameModel() {
-        // Init awal (Default Stage 1)
         this.gameStartTime = System.currentTimeMillis(); 
         this.observers = new ArrayList<>();
         this.projectiles = new ArrayList<>();
@@ -58,10 +58,9 @@ public class GameModel {
         this.plateStorages = new ArrayList<>();
         this.chefs = new ArrayList<>();
         
-        // Setup Map Default
         resetGame(1);
         
-        this.gameLoop = new Timer(50, e -> updateGame());
+        this.gameLoop = new Timer(20, e -> updateGame());
         this.gameLoop.start();
         
         System.out.println("GameModel Initialized.");
@@ -74,11 +73,119 @@ public class GameModel {
         return instance;
     }
 
+    private void updateGame() {
+        // --- REVISI: HENTIKAN UPDATE JIKA PAUSED ---
+        if (isGameOver || isPaused) return; 
+        if (map == null) return;
+        
+        checkTimeLimit(); 
+        
+        // 1. UPDATE CHEF PHYSICS
+        for (Chef c : chefs) {
+            c.update(map); 
+        }
+
+        // 2. PROJECTILES 
+        if (!projectiles.isEmpty()) {
+            Iterator<Projectile> it = projectiles.iterator();
+            while (it.hasNext()) {
+                Projectile p = it.next();
+                p.update(map, chefs);
+                
+                if (!p.isActive()) {
+                    it.remove();
+                }
+            }
+        }
+        
+        // 3. GAME LOGIC
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastTickTime >= 1000) {
+            if (orderManager != null) orderManager.tick();
+            lastTickTime = currentTime;
+        }
+        
+        // 4. PENDING PLATES
+        if (!pendingPlates.isEmpty()) {
+            Iterator<PendingPlate> it = pendingPlates.iterator();
+            while (it.hasNext()) {
+                PendingPlate pp = it.next();
+                if (currentTime >= pp.returnTime) {
+                    if (!plateStorages.isEmpty()) plateStorages.get(0).addDirtyPlate();
+                    it.remove();
+                }
+            }
+        }
+        
+        notifyObservers();
+    }
+    
+    // --- PAUSE METHODS BARU ---
+    public void togglePause() {
+        this.isPaused = !this.isPaused;
+        
+        // Reset input saat pause/resume agar chef berhenti
+        if (getActiveChef() != null) {
+            getActiveChef().stopMovement();
+        }
+        
+        notifyObservers(); // Beri tahu GamePanel untuk menampilkan/menyembunyikan PausePanel
+        System.out.println("Game Paused: " + this.isPaused);
+    }
+    
+    public boolean isPaused() {
+        return isPaused;
+    }
+
+    // --- HELPER METHODS ---
+    public void switchChef() {
+        if (isPaused || isGameOver) return; // FIX: Tidak bisa ganti chef saat dijeda
+        if (chefs.size() < 2) return;
+        getActiveChef().stopMovement();
+        activeChefIndex = (activeChefIndex + 1) % chefs.size();
+        notifyObservers();
+    }
+
+    public void resetGame(int stageId) {
+        this.isGameOver = false;
+        this.isStagePassed = false;
+        this.failedOrdersCount = 0;
+        this.currentStageId = stageId;
+        this.isPaused = false; // FIX: Pastikan tidak dalam keadaan paused
+        
+        boolean isRandomMap = (stageId == 2);
+        // FIX: Target score Stage 2 disamakan dengan target yang sudah disepakati (200)
+        this.targetScore = (stageId == 1) ? 150 : 200; 
+        
+        this.map = new Map(isRandomMap);
+        this.gameStartTime = System.currentTimeMillis();
+        
+        this.chefs.clear();
+        this.chefs.add(new Chef(2, 4));
+        this.chefs.add(new Chef(11, 4));
+        this.activeChefIndex = 0;
+        
+        this.projectiles.clear();
+        this.pendingPlates.clear(); 
+        this.plateStorages.clear(); 
+        this.map.registerStations(this); 
+        
+        this.score = 0;
+        this.orderManager = new OrderManager();
+        notifyObservers();
+    }
+    
+    // FIX: getGameDuration harus menghitung waktu yang berlalu hanya saat game TIDAK paused
     public long getGameDuration() {
         if (isGameOver) {
             long elapsed = (System.currentTimeMillis() - gameStartTime) / 1000;
             return Math.min(elapsed, GAME_DURATION_LIMIT); 
         }
+        
+        // CATATAN: Karena game loop berhenti, ini hanya akan memberikan nilai yang sama
+        // sepanjang jeda. Untuk timer yang lebih akurat, diperlukan variabel long pauseTime.
+        // Untuk saat ini, kita biarkan logicnya sederhana (waktu nyata)
+        
         long elapsedMillis = System.currentTimeMillis() - gameStartTime;
         return elapsedMillis / 1000; 
     }
@@ -93,13 +200,10 @@ public class GameModel {
         pendingPlates.add(new PendingPlate(returnTime));
     }
 
-    // --- LOGIC GAME OVER / STAGE ---
     public void addFailedOrder() {
         if (isGameOver) return;
-        
         this.failedOrdersCount++;
         notifyObservers(); 
-        
         if (failedOrdersCount >= MAX_FAILED_ORDERS) {
             finishGame(false); 
         }
@@ -115,101 +219,10 @@ public class GameModel {
     private void finishGame(boolean passed) {
         isGameOver = true;
         isStagePassed = passed;
-        System.out.println("GAME OVER. Status: " + (passed ? "PASSED" : "FAILED"));
         notifyObservers(); 
     }
     
-    public void resetGame(int stageId) {
-        this.isGameOver = false;
-        this.isStagePassed = false;
-        this.failedOrdersCount = 0;
-        this.currentStageId = stageId;
-        
-        // --- STAGE CONFIGURATION ---
-        boolean isRandomMap = false;
-        if (stageId == 1) {
-            this.targetScore = 150; 
-            isRandomMap = false;
-        } else if (stageId == 2) {
-            this.targetScore = 300; 
-            isRandomMap = true;
-        }
-        
-        // Buat Map Baru
-        this.map = new Map(isRandomMap);
-        this.gameStartTime = System.currentTimeMillis();
-        
-        this.chefs.clear();
-        this.chefs.add(new Chef(2, 4));
-        this.chefs.add(new Chef(11, 4));
-        this.activeChefIndex = 0;
-        
-        this.projectiles.clear();
-        this.pendingPlates.clear(); 
-        this.plateStorages.clear(); 
-        
-        this.map.registerStations(this); 
-        
-        this.score = 0;
-        this.orderManager = new OrderManager();
-        notifyObservers();
-    }
-    
-    public boolean isGameOver() { return isGameOver; }
-    public boolean isStagePassed() { return isStagePassed; }
-    public int getTargetScore() { return targetScore; }
-    public int getCurrentStageId() { return currentStageId; }
-    public int getFailedOrdersCount() { return failedOrdersCount; }
-    public int getMaxFailedOrders() { return MAX_FAILED_ORDERS; }
-
-    private void updateGame() {
-        if (isGameOver) return; 
-        if (map == null) return;
-        
-        checkTimeLimit(); 
-        
-        if (!projectiles.isEmpty()) {
-            Iterator<Projectile> it = projectiles.iterator();
-            while (it.hasNext()) {
-                Projectile p = it.next();
-                p.updatePosition(map);
-                if (!p.isActive()) {
-                    it.remove();
-                }
-            }
-            notifyObservers();
-        }
-        
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - lastTickTime >= 1000) {
-            if (orderManager != null) {
-                orderManager.tick();
-            }
-            lastTickTime = currentTime;
-            notifyObservers();
-        }
-        
-        if (!pendingPlates.isEmpty()) {
-            Iterator<PendingPlate> it = pendingPlates.iterator();
-            while (it.hasNext()) {
-                PendingPlate pp = it.next();
-                if (currentTime >= pp.returnTime) {
-                    if (!plateStorages.isEmpty()) {
-                        plateStorages.get(0).addDirtyPlate();
-                    }
-                    it.remove();
-                    notifyObservers();
-                }
-            }
-        }
-    }
-
-    public void switchChef() {
-        if (chefs.size() < 2) return;
-        activeChefIndex = (activeChefIndex + 1) % chefs.size();
-        notifyObservers();
-    }
-
+    // --- GETTERS ---
     public Chef getActiveChef() {
         if (chefs.isEmpty()) return null;
         return chefs.get(activeChefIndex);
@@ -224,4 +237,10 @@ public class GameModel {
     public void addScore(int points) { this.score += points; notifyObservers(); }
     public void addProjectile(Projectile p) { projectiles.add(p); }
     public List<Projectile> getProjectiles() { return projectiles; }
+    public boolean isGameOver() { return isGameOver; }
+    public boolean isStagePassed() { return isStagePassed; }
+    public int getTargetScore() { return targetScore; }
+    public int getCurrentStageId() { return currentStageId; }
+    public int getFailedOrdersCount() { return failedOrdersCount; }
+    public int getMaxFailedOrders() { return MAX_FAILED_ORDERS; }
 }

@@ -7,20 +7,20 @@ import com.nimonscooked.model.items.KitchenUtensil;
 import com.nimonscooked.model.items.Plate;
 
 public class AssemblyStation extends Station {
-    // Barang yang ditaruh di meja (bisa Piring, Bahan, atau Panci)
     private Item storedItem;
 
     public AssemblyStation(int x, int y) {
         super(x, y);
     }
 
+    // --- METHOD BARU UNTUK PROJECTILE ---
     public Item getStoredItem() { return storedItem; }
+    public void setStoredItem(Item item) { this.storedItem = item; }
 
     @Override
     public void interact(Chef chef) {
-        // KASUS 1: MEJA KOSONG
+        // KASUS 1: MEJA KOSONG -> TARUH
         if (storedItem == null) {
-            // Chef taruh barang apa saja (Piring/Bahan)
             if (!chef.getInventory().isEmpty()) {
                 storedItem = chef.getInventory().takeItem();
                 System.out.println("Placed " + storedItem.getName() + " on Assembly.");
@@ -32,15 +32,14 @@ public class AssemblyStation extends Station {
             if (storedItem instanceof Plate) {
                 Plate plate = (Plate) storedItem;
                 
-                // Chef bawa Panci/Wajan -> TUANG KE PIRING
+                // Chef bawa Panci/Wajan -> TUANG
                 if (!chef.getInventory().isEmpty() && chef.getInventory().getItem() instanceof KitchenUtensil) {
                     KitchenUtensil pot = (KitchenUtensil) chef.getInventory().getItem();
-                    // Jangan tuang piring ke piring
                     if (!(pot instanceof Plate)) {
-                        pot.moveContentsTo(plate); // ACTION: PLATING!
+                        pot.moveContentsTo(plate); 
                     }
                 }
-                // Chef bawa Bahan -> TARUH KE PIRING
+                // Chef bawa Bahan -> TARUH
                 else if (!chef.getInventory().isEmpty() && chef.getInventory().getItem() instanceof Ingredient) {
                     plate.addIngredient((Ingredient) chef.getInventory().takeItem());
                 }
@@ -50,9 +49,8 @@ public class AssemblyStation extends Station {
                     storedItem = null;
                 }
             }
-            // 2B. Di meja bukan piring (misal Bahan nganggur)
+            // 2B. Di meja bukan piring -> AMBIL
             else {
-                // Ambil saja
                 if (chef.getInventory().isEmpty()) {
                     chef.getInventory().setItem(storedItem);
                     storedItem = null;

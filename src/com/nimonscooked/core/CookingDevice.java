@@ -1,16 +1,21 @@
 package com.nimonscooked.core;
 
+import com.nimonscooked.model.items.Ingredient;
+
 public interface CookingDevice {
-    // --- Method Wajib ---
+    // --- Method Wajib (Properties) ---
     boolean isPortable();
     int capacity();
+    
+    // --- Method Interaksi Bahan ---
     boolean canAccept(Preparable ingredient); 
     void addIngredient(Preparable ingredient);
     
+    // --- Method Logika Memasak (Timer/Thread) ---
     void startCooking();
-    void stopCooking(); // <--- BARIS INI DITAMBAHKAN
+    void stopCooking(); 
     
-    // --- Helper Tambahan ---
+    // --- Helper Status ---
     boolean isCooking();
     int getCookingProgress();
 }

@@ -15,6 +15,10 @@ public class Order {
     
     public int getTimeLeft() { return timeLeft; }
     
+    // --- TAMBAHAN BARU: Diperlukan untuk Progress Bar UI ---
+    public int getMaxTime() { return maxTime; }
+    // ------------------------------------------------------
+    
     // Method untuk mengurangi waktu (dipanggil setiap detik nanti)
     public void tick() {
         if (timeLeft > 0) timeLeft--;

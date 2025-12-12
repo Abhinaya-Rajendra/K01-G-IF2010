@@ -11,9 +11,8 @@ public class WashingStation extends Station {
     
     private Thread washingThread;
     private boolean isWashing = false;
-    private int currentProgress = 0; // 0 - 100% per piring
-    
-    private final int WASH_TIME = 3000; // 3 Detik per piring
+    private int currentProgress = 0; 
+    private final int WASH_TIME = 3000; 
 
     public WashingStation(int x, int y) {
         super(x, y);
@@ -21,45 +20,51 @@ public class WashingStation extends Station {
         this.cleanResult = new Stack<>();
     }
 
+    // --- METHOD BARU UNTUK PROJECTILE ---
+    public void addDirtyPlate() {
+        Plate p = new Plate();
+        p.setClean(false);
+        dirtyQueue.push(p);
+        System.out.println("Dirty plate thrown into sink!");
+    }
+
     @Override
     public void interact(Chef chef) {
         Object heldItem = chef.getInventory().getItem();
         
-        // KASUS 1: Chef bawa Piring Kotor -> Taruh di antrian cuci
+        // KASUS 1: DROP Piring Kotor
         if (heldItem instanceof Plate) {
             Plate p = (Plate) heldItem;
-            if (!p.isClean()) {
-                dirtyQueue.push(p);
-                chef.getInventory().takeItem(); 
-                System.out.println("Plate placed in washing queue.");
+            if (p.isClean()) {
+                System.out.println("Cannot wash a clean plate!");
                 return;
             }
+            dirtyQueue.push(p);
+            chef.getInventory().takeItem(); 
+            System.out.println("Plate queued for washing.");
         }
         
-        // KASUS 2: Chef tangan kosong
-        if (heldItem == null) {
-            // Prioritas A: Ambil hasil bersih
+        // KASUS 2: PICKUP Bersih / ACTION Cuci
+        else if (heldItem == null) {
             if (!cleanResult.isEmpty()) {
                 chef.getInventory().setItem(cleanResult.pop());
                 System.out.println("Took a clean plate.");
                 return;
             }
             
-            // Prioritas B: Mulai/Lanjutkan Cuci
             if (!dirtyQueue.isEmpty()) {
                 toggleWashing(chef);
+            } else {
+                System.out.println("Washing station empty.");
             }
         }
     }
     
-    // Method untuk memulai/melanjutkan proses cuci
     private void toggleWashing(Chef chef) {
         if (isWashing) {
-            // Jika sedang mencuci dan di-interact lagi -> Pause
             pauseWashing();
             chef.setBusy(false); 
         } else {
-            // Start / Resume
             startWashing(chef);
         }
     }
@@ -68,12 +73,10 @@ public class WashingStation extends Station {
         if (dirtyQueue.isEmpty() || isWashing) return;
         
         isWashing = true;
-        chef.setBusy(true); // 🔥 SET CHEF BUSY 🔥
+        chef.setBusy(true); 
         
         washingThread = new Thread(() -> {
             try {
-                System.out.println("Washing started...");
-                // Sesuaikan start time jika proses di-pause sebelumnya
                 long startTime = System.currentTimeMillis() - (long)((currentProgress / 100.0) * WASH_TIME); 
                 
                 while (isWashing && currentProgress < 100) {
@@ -81,20 +84,11 @@ public class WashingStation extends Station {
                     currentProgress = (int) ((elapsed / (double) WASH_TIME) * 100);
                     
                     if (currentProgress >= 100) {
-                        // Selesai 1 piring
                         finishOnePlate();
-                        
-                        // Reset state untuk piring berikutnya
                         isWashing = false; 
                         currentProgress = 0;
-                        
-                        // LEPASKAN BUSY setelah selesai 1 piring
                         chef.setBusy(false); 
-                        
-                        // Jika masih ada antrian, bisa otomatis start lagi di sini
-                        // atau biarkan player interact lagi. Kita biarkan player interact lagi.
                     }
-                    
                     Thread.sleep(50);
                 }
             } catch (InterruptedException e) {
@@ -106,8 +100,6 @@ public class WashingStation extends Station {
     
     private void pauseWashing() {
         isWashing = false;
-        // currentProgress tetap tersimpan untuk resume
-        System.out.println("Washing Paused at " + currentProgress + "%");
     }
     
     private void finishOnePlate() {
@@ -115,16 +107,13 @@ public class WashingStation extends Station {
             Plate p = dirtyQueue.pop();
             p.setClean(true); 
             cleanResult.push(p);
-            System.out.println("Plate Cleaned!");
         }
     }
 
-    // Dipanggil oleh Controller jika Chef bergerak menjauh
     public void forceStopWashing(Chef chef) {
         if (isWashing) {
             pauseWashing();
-            chef.setBusy(false); // 🔥 LEPASKAN BUSY SAAT DICANCEL 🔥
-            System.out.println("Washing canceled by movement.");
+            chef.setBusy(false);
         }
     }
 
