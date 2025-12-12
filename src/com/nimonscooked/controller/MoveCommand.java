@@ -22,7 +22,7 @@ public class MoveCommand implements Command {
         GameModel model = GameModel.getInstance();
         
         // Perintahkan chef bergerak
-        chef.move(direction, model.getMap());
+        // chef.move(direction, model.getMap());
         
         // Beritahu GUI untuk update layar (Repaint)
         model.notifyObservers();

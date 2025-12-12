@@ -99,7 +99,7 @@ public class PausePanel extends JPanel {
         g2d.setFont(FONT_TITLE);
         g2d.setColor(TEXT_COLOR);
         // [ASSET PANDA: Image of game paused screen]
-        drawOutlinedString(g2d, "GAME PAUSED", w / 4, h / 4, TEXT_COLOR, Color.RED.darker());
+        drawOutlinedString(g2d, "GAME PAUSED", w / 2, h / 4, TEXT_COLOR, Color.RED.darker());
 
         // 3. Info Score & Timer (Data Terupdate)
         g2d.setFont(FONT_SCORE);
@@ -154,11 +154,14 @@ public class PausePanel extends JPanel {
     }
 
     // Helper method untuk menggambar teks bergaris tepi
-    private void drawOutlinedString(Graphics2D g2d, String text, int x, int y, Color c, Color outline) {
+    private void drawOutlinedString(Graphics2D g2d, String text, int z, int y, Color c, Color outline) {
+        FontMetrics metrics = g2d.getFontMetrics(g2d.getFont());
+        int x = z - metrics.stringWidth(text) / 2;
         g2d.setColor(outline);
         g2d.drawString(text, x+3, y+3); 
         g2d.setColor(c);
         g2d.drawString(text, x, y);
+        
     }
     
     // Helper method untuk menggambar teks di tengah X

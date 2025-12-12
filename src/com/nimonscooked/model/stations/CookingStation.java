@@ -31,7 +31,7 @@ public class CookingStation extends Station {
                 
                 // FIX: Panggil moveContentsTo Utensil. Utensil yang menentukan apakah bisa di-scoop.
                 utensil.moveContentsTo(plate); 
-                
+                plate.checkAndSetCompletedDish();
             }
             
             // 2. COOKING (Bahan -> Masuk Panci)

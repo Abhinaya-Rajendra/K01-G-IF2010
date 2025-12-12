@@ -105,6 +105,15 @@ public class AssetManager {
 
         // --- SPRINT 2: PROJECTILE ---
         load("projectile_shadow", "resources/images/projectile_shadow.png");
+
+        // --- SPRINT 3: INGREDIENT ICONS ---
+        for (String type : ingredientTypes) {
+            // Key: icon_pasta, icon_tomato, dll.
+            load("icon_" + type, "resources/images/item_" + type + "_cooked.png"); 
+        }
+
+        // --- SPRINT 3: HUD STATUS ICON ---
+        load("ui_fail", "resources/images/ui_fail.png");
     }
 
     private void load(String name, String path) {

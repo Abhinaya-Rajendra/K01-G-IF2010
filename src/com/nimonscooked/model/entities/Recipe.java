@@ -2,10 +2,16 @@ package com.nimonscooked.model.entities;
 
 import com.nimonscooked.core.Preparable;
 import com.nimonscooked.model.items.Ingredient;
+import com.nimonscooked.model.items.Plate; // Import Plate
+import com.nimonscooked.model.items.RawState;
 import com.nimonscooked.model.items.KitchenUtensil;
+import com.nimonscooked.model.items.IngredientState; // Import IngredientState
 import com.nimonscooked.utils.IngredientType;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Recipe {
     private String name;
@@ -24,41 +30,62 @@ public class Recipe {
         return name;
     }
 
-    // --- TAMBAHAN BARU: Getter untuk UI ---
     public List<IngredientType> getRequiredIngredients() {
         return requiredIngredients;
     }
-    // --------------------------------------
+    
+    // Metode lama matches(KitchenUtensil) - Diasumsikan ini digunakan untuk validasi SERVICE
 
-    public boolean matches(KitchenUtensil utensil) {
-        if (utensil == null) return false;
-        
-        List<Preparable> contents = utensil.getContents();
+    // --- METODE BARU: MATCHES PLATE (Digunakan oleh Plate.checkAndSetCompletedDish) ---
+    public boolean matchesPlate(Plate plate) {
+        List<Preparable> plateContents = plate.getContents();
 
-        if (contents.size() != requiredIngredients.size()) return false;
+        // 1. Cek Jumlah Bahan
+        if (plateContents.size() != this.requiredIngredients.size()) {
+            return false;
+        }
 
-        for (Preparable item : contents) {
-            if (item instanceof Ingredient) {
-                Ingredient ing = (Ingredient) item; 
-                if (!ing.getState().getName().equals("COOKED")) {
-                    return false; 
-                }
-            } else {
+        // 2. Cek Kondisi dan Tipe Bahan
+        List<IngredientType> requiredTypes = new ArrayList<>(this.requiredIngredients);
+        List<IngredientType> plateTypes = new ArrayList<>();
+
+        for (Preparable item : plateContents) {
+            if (!(item instanceof Ingredient)) {
                 return false; 
             }
+            
+            Ingredient ing = (Ingredient) item;
+            
+            // Aturan Umum: Jika sudah diletakkan di piring, tidak boleh RAW (mentah)
+            if (ing.getState() instanceof RawState) {
+                return false; 
+            }
+            
+            plateTypes.add(ing.getType());
         }
 
-        List<IngredientType> checklist = new ArrayList<>(requiredIngredients);
-        for (Preparable item : contents) {
-            if (item instanceof Ingredient) {
-                Ingredient ing = (Ingredient) item;
-                if (checklist.contains(ing.getType())) {
-                    checklist.remove(ing.getType()); 
-                } else {
-                    return false; 
-                }
-            }
+        // 3. Cek Kecocokan Tipe Bahan (mengabaikan urutan)
+        Collections.sort(requiredTypes);
+        Collections.sort(plateTypes);
+
+        return requiredTypes.equals(plateTypes);
+    }
+    
+    public boolean matches(KitchenUtensil utensil) {
+        // Logika validasi service lama Anda, kita ganti agar konsisten dengan matchesPlate
+        if (!(utensil instanceof Plate)) return false;
+        
+        Plate plate = (Plate) utensil;
+        
+        // Dish hanya valid jika sudah disetel FinishedDishKey (sudah diverifikasi oleh Plate)
+        String finishedKey = plate.getFinishedDishKey();
+        if (finishedKey == null || finishedKey.isEmpty()) {
+            return false;
         }
-        return checklist.isEmpty();
+        
+        // Bandingkan apakah key dish yang sudah jadi di piring cocok dengan nama resep ini
+        String recipeKey = this.getName().replace(" ", "_").toLowerCase();
+        
+        return recipeKey.equals(finishedKey);
     }
 }

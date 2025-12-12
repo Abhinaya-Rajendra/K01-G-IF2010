@@ -32,12 +32,16 @@ public class IngredientStorage extends Station {
         // Kasus A: Utensil di atas Storage, Plate di tangan
         if (itemOnTop instanceof KitchenUtensil && heldItem instanceof Plate) {
             ((KitchenUtensil) itemOnTop).moveContentsTo((Plate) heldItem);
+            Plate h = (Plate) heldItem; 
+            h.checkAndSetCompletedDish();
             return; 
         } 
         
         // Kasus B: Plate di atas Storage, Utensil di tangan
         if (itemOnTop instanceof Plate && heldItem instanceof KitchenUtensil) {
             ((KitchenUtensil) heldItem).moveContentsTo((Plate) itemOnTop);
+            Plate h = (Plate) heldItem; 
+            h.checkAndSetCompletedDish();
             return; 
         } 
 

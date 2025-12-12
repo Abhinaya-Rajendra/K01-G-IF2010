@@ -194,14 +194,17 @@ public class GameDrawingPanel extends JPanel {
 
         for (int i = 0; i < ingredients.size(); i++) {
             IngredientType type = ingredients.get(i);
+            // FIX SPRINT 3: Menggunakan key icon_lowercase_type
             String iconKey = "icon_" + type.toString().toLowerCase(); 
             BufferedImage iconImg = assets.getImage(iconKey);
 
             int currentX = startIngX + (i * (ingSize + ingGap));
 
             if (iconImg != null) {
+                // Gambar Ikon Bahan yang dimuat
                 g.drawImage(iconImg, currentX, ingY, ingSize, ingSize, null);
             } else {
+                // Fallback (Oval berwarna) jika ikon belum tersedia
                 g.setColor(Color.WHITE);
                 g.fillOval(currentX, ingY, ingSize, ingSize);
                 g.setColor(getColorForIngredient(type));
@@ -270,6 +273,30 @@ public class GameDrawingPanel extends JPanel {
         
         Color timerColor = (model.getGameDuration() <= 15) ? Color.RED : Color.WHITE;
         drawOutlinedText(g, timeStr, timerTextX, timerTextY, timerColor, new Color(200, 100, 0));
+
+        // --- 3. FAILED ORDERS (Tengah Atas Area Game) ---
+        
+        // Koordinat agar ikon berada di tengah atas area Game World
+        int failIconX = (gameAreaWidth / 2) - (iconSize / 2); 
+        int failIconY = 20;
+
+        BufferedImage failImg = assets.getImage("ui_fail");
+        if (failImg != null) {
+            g.drawImage(failImg, failIconX, failIconY, iconSize, iconSize, null);
+        } else {
+            g.setColor(Color.RED);
+            g.fillOval(failIconX, failIconY, iconSize, iconSize);
+        }
+        
+        // Teks Failed Orders (e.g., 2/5)
+        String failStr = model.getFailedOrdersCount() + " / " + model.getMaxFailedOrders();
+        int failW = fm.stringWidth(failStr);
+        
+        int failTextX = failIconX + (iconSize / 2) - (failW / 2); // Tengahkan teks
+        int failTextY = failIconY + iconSize + 25; // Di bawah ikon
+
+        Color failColor = (model.getFailedOrdersCount() >= model.getMaxFailedOrders() - 1) ? Color.RED : Color.WHITE;
+        drawOutlinedText(g, failStr, failTextX, failTextY, failColor, Color.BLACK);
     }
 
     private void drawOutlinedText(Graphics g, String text, int x, int y, Color c, Color outline) {
@@ -358,7 +385,7 @@ public class GameDrawingPanel extends JPanel {
                  }
             }
         } else if (tile.getGroundItem() != null) {
-            drawItem(g, tile.getGroundItem(), px + 15, py + 15, 20);
+            drawItem(g, tile.getGroundItem(), px+5, py+5, 40);
         }
     }
     
@@ -411,8 +438,7 @@ public class GameDrawingPanel extends JPanel {
 
                     // Gambar shadow di lantai
                     int shadowSize = 25;
-                    drawImageOrRect(g, "projectile_shadow", new Color(0, 0, 0, 80), 
-                                    x + 12, y + 5, shadowSize, shadowSize / 2);
+                    // drawImageOrRect(g, "projectile_shadow", new Color(0, 0, 0, 80), x + 12, y + 5, shadowSize, shadowSize / 2);
 
                     // Gambar item yang dilempar
                     drawItem(g, p.getItem(), x + 15, drawY + 15, 20);
@@ -473,12 +499,30 @@ public class GameDrawingPanel extends JPanel {
         }
     }
 
-    // --- REVISI SPRINT 2: DRAW ITEM (Utensil Cooking Visual) ---
-    private void drawItem(Graphics g, Item item, int x, int y, int size) {
-        if (item == null) return;
+    // --- REVISI SPRINT 3 LANJUTAN: DRAW ITEM (Dish Final) ---
+private void drawItem(Graphics g, Item item, int x, int y, int size) {
+    if (item == null) return;
+    
+    if (item instanceof Plate) {
+        Plate p = (Plate) item;
         
-        if (item instanceof Plate) {
-            Plate p = (Plate) item;
+        // --- LOGIC BARU: GAMBAR DISH JIKA SUDAH SELESAI ---
+        String dishKey = p.getFinishedDishKey(); // Membutuhkan Plate.getFinishedDishKey()
+
+        if (dishKey != null && !dishKey.isEmpty()) {
+            // 1. Gambar Plate (clean) sebagai alas
+            drawImageOrRect(g, "plate_clean", Color.WHITE, x, y, size, size);
+            
+            // 2. Gambar Dish (Pasta) di atas Plate
+            int dishSize = (int)(size * 0.8);
+            int dishX = x + (size - dishSize) / 2;
+            int dishY = y + (size - dishSize) / 2 - (size / 10); // Offset sedikit ke atas
+            
+            // Menggunakan dishKey (e.g., "pasta_marinara")
+            drawImageOrRect(g, dishKey, Color.PINK, dishX, dishY, dishSize, dishSize);
+
+        } else {
+            // --- LOGIC LAMA: GAMBAR PLATE + INGREDIENT YANG BELUM SELESAI ---
             String plateKey = p.isClean() ? "plate_clean" : "plate_dirty";
             drawImageOrRect(g, plateKey, Color.WHITE, x, y, size, size);
             
@@ -486,57 +530,59 @@ public class GameDrawingPanel extends JPanel {
                 Ingredient ing = (Ingredient) p.getContents().get(0);
                 drawIngredientState(g, ing, x, y, size, true); 
             }
-        } else if (item instanceof KitchenUtensil) {
-            String imgName = (item instanceof BoilingPot) ? "pot" : "pan";
-            KitchenUtensil u = (KitchenUtensil) item;
+        }
+    } else if (item instanceof KitchenUtensil) {
+        String imgName = (item instanceof BoilingPot) ? "pot" : "pan";
+        KitchenUtensil u = (KitchenUtensil) item;
+        
+        // FIX SPRINT 2: Ganti sprite jika sedang memasak
+        if (u.isCooking()) {
+            imgName += "_cooking"; 
+        }
+
+        drawImageOrRect(g, imgName, Color.GRAY, x, y, size, size);
+        
+        if (!u.isEmpty() && u.getContents().get(0) instanceof Ingredient) {
+            Ingredient ing = (Ingredient) u.getContents().get(0);
             
-            // FIX SPRINT 2: Ganti sprite jika sedang memasak
-            if (u.isCooking()) {
-                imgName += "_cooking"; 
-            }
-
-            drawImageOrRect(g, imgName, Color.GRAY, x, y, size, size);
+            drawIngredientState(g, ing, x, y, size, false); 
             
-            if (!u.isEmpty() && u.getContents().get(0) instanceof Ingredient) {
-                Ingredient ing = (Ingredient) u.getContents().get(0);
-                
-                drawIngredientState(g, ing, x, y, size, false); 
-                
-                // ... (Logika progress bar Utensil) ...
-                if (u.isCooking() || u.getCookingProgress() >= 100) {
-                    int progress = u.getCookingProgress(); 
+            // ... (Logika progress bar Utensil) ...
+            if (u.isCooking() || u.getCookingProgress() >= 100) {
+                int progress = u.getCookingProgress(); 
 
-                    final int BAR_WIDTH_MAX = (int) (size * 0.8);
-                    final int BAR_HEIGHT = 4;
-                    int barX = x + (size - BAR_WIDTH_MAX) / 2;
-                    int barY = y - 5; 
-                    float progressRatio = Math.min(progress, 200) / 100.0f; 
-                    int barWidthCurrent = (int) (BAR_WIDTH_MAX * progressRatio);
+                final int BAR_WIDTH_MAX = (int) (size * 0.8);
+                final int BAR_HEIGHT = 4;
+                int barX = x + (size - BAR_WIDTH_MAX) / 2;
+                int barY = y - 5; 
+                float progressRatio = Math.min(progress, 200) / 100.0f; 
+                int barWidthCurrent = (int) (BAR_WIDTH_MAX * progressRatio);
 
-                    Color barColor;
-                    if (progress >= 200) {
-                        barColor = PROGRESS_RED; 
-                    } else if (progress >= 100) {
-                        barColor = PROGRESS_GREEN; 
-                    } else {
-                        barColor = PROGRESS_YELLOW; 
-                    }
-                    
-                    g.setColor(new Color(0, 0, 0, 100)); 
-                    g.fillRect(barX - 1, barY - 1, BAR_WIDTH_MAX + 2, BAR_HEIGHT + 2);
-
-                    g.setColor(barColor);
-                    g.fillRect(barX, barY, Math.min(barWidthCurrent, BAR_WIDTH_MAX), BAR_HEIGHT); 
+                Color barColor;
+                if (progress >= 200) {
+                    barColor = PROGRESS_RED; 
+                } else if (progress >= 100) {
+                    barColor = PROGRESS_GREEN; 
+                } else {
+                    barColor = PROGRESS_YELLOW; 
                 }
                 
-                g.setColor(Color.WHITE); 
-                g.setFont(new Font("Arial", Font.BOLD, 10)); 
-                g.drawString(ing.getState().getName().substring(0, 3), x + 5, y + 10);
+                g.setColor(new Color(0, 0, 0, 100)); 
+                g.fillRect(barX - 1, barY - 1, BAR_WIDTH_MAX + 2, BAR_HEIGHT + 2);
+
+                g.setColor(barColor);
+                g.fillRect(barX, barY, Math.min(barWidthCurrent, BAR_WIDTH_MAX), BAR_HEIGHT); 
             }
-        } else if (item instanceof Ingredient) {
-            drawIngredientState(g, (Ingredient) item, x, y, size, false);
+            
+            g.setColor(Color.WHITE); 
+            g.setFont(new Font("Arial", Font.BOLD, 10)); 
+            // Kembalikan teks status ingredient di Utensil
+            g.drawString(ing.getState().getName().substring(0, 3), x + 5, y + 10);
         }
+    } else if (item instanceof Ingredient) {
+        drawIngredientState(g, (Ingredient) item, x, y, size, false);
     }
+}
     
     private void drawIngredientState(Graphics g, Ingredient ing, int x, int y, int size, boolean isPlated) {
         String stateName = ing.getState().getName().toLowerCase(); 
@@ -552,13 +598,15 @@ public class GameDrawingPanel extends JPanel {
         if (ingredientImg != null) {
             drawImageOrRect(g, ingredientKey, getColorForIngredient(ing.getType()), drawX, drawY, drawSize, drawSize);
         } else {
-            drawImageOrRect(g, "item_default", getColorForIngredient(ing.getType()), drawX, drawY, drawSize, drawSize);
+            if (!ing.getState().getName().equals("COOKING")){
+                drawImageOrRect(g, "item_default", getColorForIngredient(ing.getType()), drawX, drawY, drawSize, drawSize);
+            }
         }
         
         if (!isPlated) {
              g.setColor(Color.BLACK); 
              g.setFont(new Font("Arial", Font.BOLD, 10)); 
-             g.drawString(stateName.substring(0, 3), x, y + size + 10);
+            //  g.drawString(stateName.substring(0, 3), x, y + size + 10);
         }
     }
 

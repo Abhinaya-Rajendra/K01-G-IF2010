@@ -38,6 +38,8 @@ public class CuttingStation extends Station implements GameTickable {
         // FIX BARU: SCOOPING (Utensil di stasiun, Plate di tangan)
         if (currentItem instanceof KitchenUtensil && heldItem instanceof Plate) {
             ((KitchenUtensil) currentItem).moveContentsTo((Plate) heldItem);
+            Plate h = (Plate) heldItem; 
+            h.checkAndSetCompletedDish();
             return; // Interaksi scoop selesai
         } 
         

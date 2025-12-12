@@ -37,6 +37,7 @@ public class AssemblyStation extends Station {
                 
                 // Delegasikan ke Utensil (KitchenUtensil.moveContentsTo yang sudah direvisi)
                 utensil.moveContentsTo(plate);
+                plate.checkAndSetCompletedDish();
                 return; // Interaksi selesai
             }
             
@@ -47,7 +48,8 @@ public class AssemblyStation extends Station {
                 // Chef bawa Panci/Wajan -> TUANG ISI (SCOOP)
                 if (heldItem instanceof KitchenUtensil) {
                     KitchenUtensil pot = (KitchenUtensil) heldItem;
-                    pot.moveContentsTo(plate); 
+                    pot.moveContentsTo(plate);
+                    plate.checkAndSetCompletedDish(); 
                 }
                 // Chef bawa Bahan -> TARUH/PASANG BAHAN
                 else if (heldItem instanceof Ingredient) {

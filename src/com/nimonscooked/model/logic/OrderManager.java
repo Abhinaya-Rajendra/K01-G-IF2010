@@ -113,4 +113,8 @@ public class OrderManager {
         }
         return false; 
     }
+
+    public List<Recipe> getAllRecipes() {
+        return availableRecipes;
+    }
 }
