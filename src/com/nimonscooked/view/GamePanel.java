@@ -2,9 +2,8 @@ package com.nimonscooked.view;
 
 import com.nimonscooked.core.GameObserver;
 import com.nimonscooked.model.logic.GameModel;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 /**
  * GamePanel (Wrapper) - Bertindak sebagai JLayeredPane untuk menumpuk:
@@ -70,10 +69,8 @@ public class GamePanel extends JLayeredPane implements GameObserver {
     // --- GAME OBSERVER IMPLEMENTATION ---
     @Override
     public void update(Object gameState) {
-        // 1. Update visibilitas Pause Menu berdasarkan status model
-        pauseOverlay.toggleVisibility(); 
-        
-        // 2. Repaint game world.
-        drawingPanel.repaint(); 
+        if (pauseOverlay.isVisible() != model.isPaused()) {
+            pauseOverlay.toggleVisibility();
+        }
     }
 }

@@ -1,23 +1,20 @@
 package com.nimonscooked.view;
 
-import com.nimonscooked.core.CookingDevice;
-import com.nimonscooked.core.GameObserver; 
-import com.nimonscooked.model.logic.GameModel;
-import com.nimonscooked.model.logic.Map;
-import com.nimonscooked.model.logic.Tile;
 import com.nimonscooked.model.entities.Chef;
 import com.nimonscooked.model.entities.Order;
 import com.nimonscooked.model.entities.Projectile;
-import com.nimonscooked.model.stations.*;
 import com.nimonscooked.model.items.*;
+import com.nimonscooked.model.logic.GameModel;
+import com.nimonscooked.model.logic.Map;
+import com.nimonscooked.model.logic.Tile;
+import com.nimonscooked.model.stations.*;
 import com.nimonscooked.utils.IngredientType;
-
-import javax.swing.JPanel;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
+import javax.swing.JPanel;
 
 public class GameDrawingPanel extends JPanel { 
 
@@ -55,7 +52,6 @@ public class GameDrawingPanel extends JPanel {
         super.paintComponent(g);
         
         if (model.isPaused()) {
-            return; 
         }
 
         Graphics2D g2d = (Graphics2D) g;
