@@ -148,12 +148,28 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
             if (item instanceof Ingredient) {
                 Ingredient ing = (Ingredient) item;
                 
+                // REVISI VALIDASI:
+                // 1. Jika masih status "Cooking" (belum matang), TOLAK.
+                if (isCooking && cookingProgress < 100) {
+                    System.out.println("Cannot scoop ingredient while cooking (not cooked yet).");
+                    return; // Jangan lakukan apa-apa
+                }
+                
+                // 2. Jika status item belum COOKED dan belum BURNED, TOLAK.
+                if (!(ing.getState() instanceof CookedState) && !(ing.getState() instanceof BurnedState)) {
+                     System.out.println("Cannot scoop raw/cooking ingredient.");
+                     return;
+                }
+                
+                // Jika lolos (sudah COOKED atau BURNED), baru boleh dipindah
                 if (!(ing.getState() instanceof BurnedState)) {
                     targetPlate.addIngredient(ing);
                     this.clearContents(); 
                 } else {
                     String itemName = (ing instanceof Item) ? ((Item) ing).getName() : "Ingredient";
                     System.out.println("Cannot move burned ingredient (" + itemName + ") to plate. Must dispose.");
+                    // Opsional: Anda bisa membiarkan user mengambil burnt item untuk dibuang ke tempat sampah
+                    // Tapi spek Anda bilang "menolak bahan cooking", jadi blok di atas sudah cukup.
                 }
             }
         }

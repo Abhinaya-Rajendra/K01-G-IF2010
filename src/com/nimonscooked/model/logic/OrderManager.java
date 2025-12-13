@@ -16,7 +16,10 @@ public class OrderManager {
     private List<Recipe> availableRecipes;
     private Random random;
     
-    private final int MAX_ORDERS = 4; // Maksimal 3 order aktif di sidebar
+    // --- KONFIGURASI ORDER ---
+    private final int MAX_ORDERS = 4; // Maksimal order yang tampil
+    private final int ORDER_SPAWN_INTERVAL = 15; // Order baru datang setiap 15 detik
+    private int spawnTimer = 0; // Timer internal untuk spawn order
 
     public OrderManager() {
         this.activeOrders = new LinkedList<>();
@@ -25,9 +28,8 @@ public class OrderManager {
         
         initializeRecipes();
         
-        while (activeOrders.size() < MAX_ORDERS) {
-            generateNewOrder();
-        }
+        // REVISI: Mulai hanya dengan SATU order
+        generateNewOrder(); 
     }
 
     private void initializeRecipes() {
@@ -43,7 +45,7 @@ public class OrderManager {
         r2.addIngredient(IngredientType.MEAT);
         availableRecipes.add(r2);
         
-        // 3. Pasta Frutti di Mare (Baru)
+        // 3. Pasta Frutti di Mare
         Recipe r3 = new Recipe("Pasta Frutti di Mare");
         r3.addIngredient(IngredientType.PASTA);
         r3.addIngredient(IngredientType.SHRIMP);
@@ -52,11 +54,12 @@ public class OrderManager {
     }
 
     private void generateNewOrder() {
-        if (availableRecipes.isEmpty()) return;
+        // Jangan generate jika resep kosong atau slot penuh
+        if (availableRecipes.isEmpty() || activeOrders.size() >= MAX_ORDERS) return;
         
         Recipe randomRecipe = availableRecipes.get(random.nextInt(availableRecipes.size()));
-        // Durasi acak antara 40 - 60 detik
-        int duration = 100 + random.nextInt(21); 
+        // Durasi tetap 100 detik (bisa dirandomize jika perlu)
+        int duration = 100; 
         
         Order newOrder = new Order(randomRecipe, duration);
         activeOrders.add(newOrder);
@@ -67,9 +70,10 @@ public class OrderManager {
         return activeOrders;
     }
 
+    // Dipanggil setiap detik oleh GameModel
     public void tick() {
+        // 1. Update Timer Order yang sedang aktif
         List<Order> expiredOrders = new ArrayList<>();
-
         for (Order o : activeOrders) {
             o.tick();
             if (o.isExpired()) {
@@ -77,38 +81,56 @@ public class OrderManager {
             }
         }
 
+        // 2. Hapus Order Kadaluarsa
         for (Order expired : expiredOrders) {
             System.out.println("ORDER EXPIRED: " + expired.getRecipe().getName());
             activeOrders.remove(expired);
-            
             GameModel.getInstance().addScore(-50); 
             GameModel.getInstance().addFailedOrder(); 
         }
         
-        while (activeOrders.size() < MAX_ORDERS) {
-            generateNewOrder();
+        // 3. LOGIKA SPAWN BERDASARKAN WAKTU
+        // Tambahkan timer spawn
+        spawnTimer++;
+        if (spawnTimer >= ORDER_SPAWN_INTERVAL) {
+            // Coba spawn order baru setiap interval
+            if (activeOrders.size() < MAX_ORDERS) {
+                generateNewOrder();
+                spawnTimer = 0; // Reset timer setelah sukses spawn
+            }
+            // Jika slot penuh, timer terus jalan atau bisa di-reset 
+            // (di sini kita biarkan jalan terus, jadi begitu ada slot kosong nanti dia akan menunggu interval lagi
+            // atau reset ke 0 agar intervalnya tetap teratur)
+            else {
+                 spawnTimer = 0; // Reset agar interval tetap konsisten
+            }
         }
+        
+        // REVISI: HAPUS loop 'while (activeOrders.size() < MAX_ORDERS)' yang lama
+        // agar order tidak langsung penuh seketika.
     }
 
     public boolean validateService(KitchenUtensil dish) {
         if (activeOrders.isEmpty()) return false;
 
+        // FIFO Check: Iterasi dari index 0 (terlama) ke terakhir
         Iterator<Order> it = activeOrders.iterator();
         while (it.hasNext()) {
             Order order = it.next();
-            // Cek apakah isi piring sesuai resep order
+            
+            // Cek kecocokan resep
             if (order.getRecipe().matches(dish)) {
                 System.out.println("Order Completed: " + order.getRecipe().getName());
                 
                 GameModel.getInstance().addScore(100);
 
+                // Hapus order ini (yang pertama ketemu / paling lama)
                 it.remove(); 
                 
-                while (activeOrders.size() < MAX_ORDERS) {
-                    generateNewOrder();
-                }
+                // REVISI: Spawn 1 order baru sebagai pengganti (Instant Spawn on Complete)
+                generateNewOrder();
                 
-                return true; 
+                return true; // Selesai, jangan cek order lain
             }
         }
         return false; 
