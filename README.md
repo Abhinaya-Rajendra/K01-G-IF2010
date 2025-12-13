@@ -1,7 +1,6 @@
 # 🍳 Nimonscooked
 
 ![Nimonscooked Banner](assets/banner_placeholder.png)
-*(Ganti `assets/banner_placeholder.png` dengan gambar logo atau screenshot main menu game kamu)*
 
 > **Tugas Besar Pemrograman Berorientasi Objek (OOP)**
 >
@@ -40,8 +39,6 @@ Game ini dikembangkan dari nol menggunakan **Java** tanpa *game engine* eksterna
 | ![Menu](assets/menu_preview.jpg) | ![Gameplay](assets/gameplay_preview.jpg) |
 | *Start your journey* | *Chaos in the kitchen!* |
 
-*(Pastikan kamu menyimpan screenshot game kamu di folder `assets` dan sesuaikan nama filenya di sini)*
-
 ---
 
 ## 🎮 Controls
@@ -50,9 +47,9 @@ Game ini dikembangkan dari nol menggunakan **Java** tanpa *game engine* eksterna
 | :---: | :--- |
 | **W / A / S / D** | Bergerak (Atas, Kiri, Bawah, Kanan) |
 | **SPACE** | Interaksi (Ambil/Taruh Bahan, Potong, Cuci) |
+| **F** | Lempar (Throw) |
 | **SHIFT** | Lari (Dash) |
-| **P** | Pause Game |
-| **ESC** | Kembali / Keluar |
+| **ESC** | Pause |
 
 ---
 
@@ -112,15 +109,5 @@ Pastikan kamu sudah menginstal **Java Development Kit (JDK) 8** atau lebih baru.
 
 ---
 
-## 👥 Credits
-
-**Team Nimonscooked:**
-* **[Nama Kamu]** - *Lead Developer & Game Logic*
-* **[Nama Anggota Tim]** - *Asset Designer & UI*
-* **[Nama Anggota Tim]** - *Level Design*
-
-**Assets generated with:** Google Gemini AI & Custom Editing.
-
----
-
 Made with ❤️ and a lot of ☕ code.
+
