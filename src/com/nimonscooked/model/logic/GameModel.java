@@ -37,6 +37,9 @@ public class GameModel {
     private long timePaused = 0; 
     private long pauseStartTime = 0;
     
+    // Flag Utama Kontrol Loop
+    private boolean isGameActive = false; 
+    
     // FIX: List untuk melacak stasiun/objek yang sedang memiliki progress aktif
     private List<GameTickable> activeStations = new CopyOnWriteArrayList<>();
     
@@ -64,20 +67,17 @@ public class GameModel {
     }
 
     private GameModel() {
-        this.gameStartTime = System.currentTimeMillis(); 
         this.observers = new ArrayList<>();
         this.projectiles = new ArrayList<>();
-        // this.orderManager = new OrderManager(); // Dipindah ke resetGame
         this.pendingPlates = new ArrayList<>();
         this.plateStorages = new ArrayList<>();
         this.chefs = new ArrayList<>();
         
-        resetGame(1);
-        
+        // REVISI: Timer dibuat tapi TIDAK di-start di sini.
+        // Timer akan di-start saat resetGame() -> startGameLogic() dipanggil.
         this.gameLoop = new Timer(20, e -> updateGame());
-        this.gameLoop.start();
         
-        System.out.println("GameModel Initialized.");
+        System.out.println("GameModel Initialized (Idle State).");
     }
 
     public static GameModel getInstance() {
@@ -87,13 +87,39 @@ public class GameModel {
         return instance;
     }
 
+    // --- KONTROL LOGIC LOOP ---
+    
+    public void startGameLogic() {
+        // Hentikan dulu untuk memastikan clean state
+        stopGameLogic();
+        
+        this.isGameActive = true;
+        this.lastTickTime = System.currentTimeMillis();
+        
+        if (!gameLoop.isRunning()) {
+            gameLoop.start();
+        }
+        System.out.println("Logic Loop Started.");
+    }
+
+    public void stopGameLogic() {
+        this.isGameActive = false;
+        if (gameLoop.isRunning()) {
+            gameLoop.stop();
+        }
+        System.out.println("Logic Loop Stopped.");
+    }
+
     private void updateGame() {
+        // REVISI: Cek apakah game aktif. Jika di menu, ini false.
+        if (!isGameActive) return; 
+
         if (isGameOver || isPaused) return; 
         if (map == null) return;
         
         // Cek Time Limit di awal untuk prioritas. 
         checkTimeLimit(); 
-        if (isGameOver) return; // FIX: Penting untuk menghentikan loop jika game over
+        if (isGameOver) return; 
 
         // 1. UPDATE CHEF PHYSICS
         for (Chef c : chefs) {
@@ -186,8 +212,10 @@ public class GameModel {
     }
     
     private void checkTimeLimit() {
-        if (getGameDuration() >= GAME_DURATION_LIMIT) {
-            // Jika waktu habis, status ditentukan oleh perbandingan skor.
+        // REVISI: Cek apakah sisa waktu sudah habis (0 atau kurang)
+        if (getGameDuration() <= 0) {
+            
+            // Jika waktu habis, status ditentukan oleh perbandingan skor
             boolean passed = (score >= targetScore);
             finishGame(passed);
         }
@@ -213,6 +241,9 @@ public class GameModel {
     }
 
     public void resetGame(int stageId) {
+        // Stop logic lama sebelum reset
+        stopGameLogic();
+
         this.isGameOver = false;
         this.isStagePassed = false;
         this.failedOrdersCount = 0;
@@ -232,14 +263,12 @@ public class GameModel {
         this.gameStartTime = System.currentTimeMillis();
         
         this.chefs.clear();
-        
-        // REVISI: Menggunakan Dynamic Spawn Point dari Map
-        // Agar chef tidak terjebak di dalam tembok jika map random
         Point spawn1 = map.getSpawnPoint(0);
         Point spawn2 = map.getSpawnPoint(1);
         
-        this.chefs.add(new Chef(spawn1.x, spawn1.y));
-        this.chefs.add(new Chef(spawn2.x, spawn2.y));
+        // INSTANCE CHEF DENGAN PREFIX BERBEDA
+        this.chefs.add(new Chef(spawn1.x, spawn1.y, "fox"));     // Chef 1
+        this.chefs.add(new Chef(spawn2.x, spawn2.y, "raccoon")); // Chef 2
         
         this.activeChefIndex = 0;
         
@@ -249,10 +278,17 @@ public class GameModel {
         this.map.registerStations(this); 
         
         this.score = 0;
+        
+        // REVISI: Baru nyalakan Timer Logic di sini!
+        startGameLogic();
+        
         notifyObservers();
     }
     
     public long getGameDuration() {
+        // Jika game belum aktif, kembalikan durasi penuh (misal 100 detik)
+        if (!isGameActive && !isGameOver) return GAME_DURATION_LIMIT;
+
         long elapsedMillis = System.currentTimeMillis() - gameStartTime;
         
         if (isPaused && pauseStartTime > 0) {
@@ -262,11 +298,10 @@ public class GameModel {
         elapsedMillis -= timePaused;
         
         long elapsedSeconds = elapsedMillis / 1000;
+        long remainingSeconds = GAME_DURATION_LIMIT - elapsedSeconds;
         
-        if (isGameOver) {
-            return Math.min(elapsedSeconds, GAME_DURATION_LIMIT); 
-        }
-        return elapsedSeconds; 
+        // Pastikan tidak negatif (stop di 0)
+        return Math.max(0, remainingSeconds); 
     }
 
     public Timer getGameLoop() { 

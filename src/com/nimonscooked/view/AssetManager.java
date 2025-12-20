@@ -93,10 +93,10 @@ public class AssetManager {
         load("chef_right", "resources/images/chef_right.png");
 
         // Animasi 2 Frame (Frame 0 & 1)
-        load("chef_chopping_0", "resources/images/chef_chopping_1.png"); // Chef memotong Frame 1
-        load("chef_chopping_1", "resources/images/chef_chopping_2.png"); // Chef memotong Frame 2
-        load("chef_washing_0", "resources/images/chef_washing_1.png"); // Chef mencuci Frame 1
-        load("chef_washing_1", "resources/images/chef_washing_2.png"); // Chef mencuci Frame 2
+        load("chef_chopping_0", "resources/images/chef_chopping_0.png"); // Chef memotong Frame 1
+        load("chef_chopping_1", "resources/images/chef_chopping_1.png"); // Chef memotong Frame 2
+        load("chef_washing_0", "resources/images/chef_washing_0.png"); // Chef mencuci Frame 1
+        load("chef_washing_1", "resources/images/chef_washing_1.png"); // Chef mencuci Frame 2
 
         // --- SPRINT 2: UTENSIL VISUAL ---
         // Utensil Cooking Visual (Satu aset untuk visual memasak)
@@ -114,6 +114,53 @@ public class AssetManager {
 
         // --- SPRINT 3: HUD STATUS ICON ---
         load("ui_fail", "resources/images/ui_fail.png");
+
+                // --- ASSETS: MAIN MENU ---
+        // Background & Logo
+        load("menu_bg", "resources/images/menu_bg.png");     // Gambar Background Full (1920x1080 saran)
+        load("menu_logo", "resources/images/menu_logo.png"); // Logo Game Transparan
+
+        // Buttons (Idle State)
+        load("btn_start", "resources/images/btn_start.png");
+        load("btn_help", "resources/images/btn_help.png");
+        load("btn_exit", "resources/images/btn_exit.png");
+
+        // Music Toggle
+        load("btn_music_on", "resources/images/btn_music_on.png");
+        load("btn_music_off", "resources/images/btn_music_off.png");
+
+        // Opsional: Jika Anda punya versi 'Hover' (saat mouse di atas tombol)
+        load("btn_start_hover", "resources/images/btn_start_hover.png");
+        
+        load("menu_help", "resources/images/menu_help.png");
+        // Di dalam method loadAllImages()
+        load("preview_stage_1", "resources/images/preview_stage_1.png");
+        load("preview_stage_2", "resources/images/preview_stage_2.png");
+
+        // Di method loadAllImages()
+
+    // === CHEF 1: RUBAH (FOX) ===
+    load("fox_up", "resources/images/fox_up.png");
+    load("fox_down", "resources/images/fox_down.png");
+    load("fox_left", "resources/images/fox_left.png");
+    load("fox_right", "resources/images/fox_right.png");
+    // Animasi Fox
+    load("fox_chopping_0", "resources/images/fox_chop_1.png");
+    load("fox_chopping_1", "resources/images/fox_chop_2.png");
+    load("fox_washing_0", "resources/images/fox_wash_1.png");
+    load("fox_washing_1", "resources/images/fox_wash_2.png");
+
+    // === CHEF 2: RAKUN (RACCOON) ===
+    load("raccoon_up", "resources/images/raccoon_up.png");
+    load("raccoon_down", "resources/images/raccoon_down.png");
+    load("raccoon_left", "resources/images/raccoon_left.png");
+    load("raccoon_right", "resources/images/raccoon_right.png");
+    // Animasi Raccoon
+    load("raccoon_chopping_0", "resources/images/raccoon_chop_1.png");
+    load("raccoon_chopping_1", "resources/images/raccoon_chop_2.png");
+    load("raccoon_washing_0", "resources/images/raccoon_wash_1.png");
+    load("raccoon_washing_1", "resources/images/raccoon_wash_2.png");
+        
     }
 
     private void load(String name, String path) {

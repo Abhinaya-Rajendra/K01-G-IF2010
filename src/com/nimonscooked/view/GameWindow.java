@@ -69,11 +69,15 @@ public class GameWindow extends JFrame implements GameObserver {
             if (GameModel.getInstance().isPaused()) {
                 GameModel.getInstance().togglePause();
             }
+            
+            // REVISI: Matikan Game Loop UI saat kembali ke menu
+            if (gamePanel != null) {
+                gamePanel.stopGameLoop();
+            }
+            
             cardLayout.show(mainContainer, "MENU");
             
-            // HAPUS: pack(); <- JANGAN DIPANGGIL LAGI
-            
-            // Pastikan fokus kembali ke window agar keyboard bisa dipakai di menu (jika ada navigasi keyboard)
+            // Pastikan fokus kembali ke window agar keyboard bisa dipakai di menu
             requestFocusInWindow();
         };
         
@@ -90,7 +94,6 @@ public class GameWindow extends JFrame implements GameObserver {
         menuPanel = new MainMenuPanel(
             () -> {
                 cardLayout.show(mainContainer, "STAGE_SELECT");
-                // HAPUS: pack(); 
             }
         );
 
@@ -113,12 +116,16 @@ public class GameWindow extends JFrame implements GameObserver {
     }
 
     private void startGame(int stageId) {
+        // 1. Reset Model Logic
         GameModel.getInstance().resetGame(stageId);
         
-        // Ganti tampilan ke Game
-        cardLayout.show(mainContainer, "GAME");
+        // 2. REVISI: Mulai Game Loop UI (Repaint)
+        if (gamePanel != null) {
+            gamePanel.startGameLoop();
+        }
         
-        // HAPUS: pack(); <- INI YANG MEMBUAT WINDOW KEMBALI KECIL
+        // 3. Ganti tampilan ke Game
+        cardLayout.show(mainContainer, "GAME");
         
         // Sangat Penting: Fokuskan agar InputHandler bisa menangkap keyboard
         this.requestFocusInWindow(); 
@@ -133,10 +140,14 @@ public class GameWindow extends JFrame implements GameObserver {
             // Logic transisi ke Result Panel
             if (!resultPanel.isVisible()) { // Cek sederhananya begini
                 
+                // REVISI: Matikan Game Loop UI saat Game Over
+                if (gamePanel != null) {
+                    gamePanel.stopGameLoop();
+                }
+
                 resultPanel.updateResult(); 
                 cardLayout.show(mainContainer, "RESULT");
                 
-                // HAPUS: pack(); 
                 requestFocusInWindow();
             }
         }

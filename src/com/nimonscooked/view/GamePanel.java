@@ -10,12 +10,18 @@ import java.awt.*;
  * GamePanel (Wrapper) - Bertindak sebagai JLayeredPane untuk menumpuk:
  * 1. GameDrawingPanel (Game World - Layer Bawah)
  * 2. PausePanel (Overlay Menu - Layer Atas)
+ * * REVISI: Menambahkan kontrol Game Loop (Thread) manual.
  */
-public class GamePanel extends JLayeredPane implements GameObserver { 
+public class GamePanel extends JLayeredPane implements GameObserver, Runnable { 
 
     private GameModel model;
     private GameDrawingPanel drawingPanel; 
     private PausePanel pauseOverlay; 
+    
+    // Thread Kontrol
+    private Thread gameThread;
+    private boolean isRunning = false;
+    private final int FPS = 60;
     
     // Nilai-nilai ini dipertahankan sebagai referensi ukuran default/awal
     private final int TILE_SIZE = 50;
@@ -44,11 +50,57 @@ public class GamePanel extends JLayeredPane implements GameObserver {
         
         // Set ukuran awal
         setPreferredSize(preferredSize);
+        
+        // PENTING: JANGAN jalankan thread di sini (Constructor)
     }
 
-    // --- FIX: OVERRIDE doLayout() untuk Responsiveness ---
-    // Ketika JLayeredPane diubah ukurannya, doLayout akan dipanggil,
-    // dan kita set bounds komponen internal agar mengisi seluruh ruang yang tersedia (getWidth/getHeight).
+    // --- GAME LOOP CONTROL (BARU) ---
+    public void startGameLoop() {
+        if (gameThread != null && gameThread.isAlive()) {
+            return; // Cegah double start
+        }
+        isRunning = true;
+        gameThread = new Thread(this);
+        gameThread.start();
+        System.out.println("Game Loop Started!");
+    }
+
+    public void stopGameLoop() {
+        isRunning = false;
+        if (gameThread != null) {
+            try {
+                gameThread.join(100); 
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            gameThread = null;
+        }
+        System.out.println("Game Loop Stopped!");
+    }
+
+    @Override
+    public void run() {
+        double drawInterval = 1000000000 / FPS;
+        double delta = 0;
+        long lastTime = System.nanoTime();
+        long currentTime;
+
+        while (isRunning) {
+            currentTime = System.nanoTime();
+            delta += (currentTime - lastTime) / drawInterval;
+            lastTime = currentTime;
+
+            if (delta >= 1) {
+                // Update Logic (Jika ada di View, biasanya input/animasi)
+                // Tapi logika utama game biasanya di Model (Thread terpisah atau Timer)
+                // Di sini kita fokus repaint UI agar mulus
+                repaint();
+                delta--;
+            }
+        }
+    }
+
+    // --- OVERRIDE doLayout() untuk Responsiveness ---
     @Override
     public void doLayout() {
         int w = getWidth();
@@ -64,16 +116,18 @@ public class GamePanel extends JLayeredPane implements GameObserver {
         }
         super.doLayout();
     }
-    // --- END FIX ---
-
 
     // --- GAME OBSERVER IMPLEMENTATION ---
     @Override
     public void update(Object gameState) {
         // 1. Update visibilitas Pause Menu berdasarkan status model
-        pauseOverlay.toggleVisibility(); 
+        if (pauseOverlay != null) {
+             pauseOverlay.toggleVisibility(); 
+        }
         
         // 2. Repaint game world.
-        drawingPanel.repaint(); 
+        if (drawingPanel != null) {
+            drawingPanel.repaint(); 
+        }
     }
 }

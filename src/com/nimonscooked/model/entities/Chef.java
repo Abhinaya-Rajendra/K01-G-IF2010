@@ -34,13 +34,21 @@ public class Chef extends GameObject {
  private long lastDashTime = 0;
  private int dashDurationTicks = 0;
  private final long DASH_COOLDOWN = 1000; 
+private String texturePrefix; // "fox" atau "raccoon"
 
- public Chef(int startGridX, int startGridY) {
-  super(startGridX, startGridY);
-  this.worldX = startGridX;
-  this.worldY = startGridY;
-  this.inventory = new Inventory<>();
- }
+    // Ubah Constructor untuk menerima tipe chef
+    public Chef(int startGridX, int startGridY, String texturePrefix) {
+        super(startGridX, startGridY);
+        this.worldX = startGridX;
+        this.worldY = startGridY;
+        this.texturePrefix = texturePrefix; // Simpan identitas
+        this.inventory = new Inventory<>();
+    }
+    
+    // Getter
+    public String getTexturePrefix() {
+        return texturePrefix;
+    }
 
  public void setMovementInput(boolean up, boolean down, boolean left, boolean right) {
   this.inputUp = up;
@@ -106,7 +114,7 @@ public class Chef extends GameObject {
  private boolean checkWallCollision(double targetX, double targetY, Map map) {
   double left = targetX + (1 - COLLISION_SIZE) / 2;
   double right = left + COLLISION_SIZE;
-  double top = targetY + (1 - COLLISION_SIZE) / 2;
+  double top = targetY + 0.3 + (1 - COLLISION_SIZE) / 2;
   double bottom = top + COLLISION_SIZE;
 
   return isWall(left, top, map) || isWall(right, top, map) || 
@@ -181,9 +189,9 @@ public class Chef extends GameObject {
  }
  
  private void handleDropOrPlate(Item held, Item ground, Tile tile) {
-        // Logika ini hanya menangani transfer antara Plate dan Ingredient (bukan Utensil)
-        
-        // KASUS 1: Held Plate, Ground Ingredient (Tambah ke Piring yang dipegang)
+    // Logika ini hanya menangani transfer antara Plate dan Ingredient (bukan Utensil)
+    
+    // KASUS 1: Held Plate, Ground Ingredient (Tambah ke Piring yang dipegang)
     if (held instanceof Plate && ground instanceof Ingredient) {
       // Tambahkan pengecekan canAccept (kapasitas)
       if (((Plate) held).isClean() && ((Plate) held).canAccept((Ingredient) ground)) { 
@@ -191,17 +199,22 @@ public class Chef extends GameObject {
         tile.setGroundItem(null);
       }
     } 
-        // KASUS 2: Held Ingredient, Ground Plate (Tambah ke Piring yang di tanah)
-        else if (held instanceof Ingredient && ground instanceof Plate) {
+    // KASUS 2: Held Ingredient, Ground Plate (Tambah ke Piring yang di tanah)
+    else if (held instanceof Ingredient && ground instanceof Plate) {
       // Tambahkan pengecekan canAccept (kapasitas)
       if (((Plate) ground).isClean() && ((Plate) ground).canAccept((Ingredient) held)) { 
         ((Plate) ground).addIngredient((Ingredient) held);
         inventory.takeItem();
       }
-        } 
-        // KASUS 3: Drop item
-        else if (ground == null) {
-      tile.setGroundItem(inventory.takeItem());
+    } 
+    // KASUS 3: Drop item
+    else if (ground == null) {
+      // --- FIX: CEK APAKAH TILE ADALAH WALKABLE (BUKAN TEMBOK) ---
+      // Jika tile tidak bisa jalan (isWalkable == false), berarti itu tembok/obstacle
+      // Maka jangan drop item di situ.
+      if (tile.isWalkable()) { 
+          tile.setGroundItem(inventory.takeItem());
+      }
     }
   }
 

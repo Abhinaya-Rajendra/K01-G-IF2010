@@ -336,7 +336,10 @@ public class GameDrawingPanel extends JPanel {
 
         if (tile.isWall() || tile.getStation() != null) {
             g.setColor(new Color(255, 255, 0, 50));
-            g.fillRect(px, py + TILE_SIZE - blockH, TILE_SIZE, blockH);
+            if (tile.getStation() == null) {
+                g.fillRect(px, py + TILE_SIZE - blockH, TILE_SIZE, blockH);
+                // g.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+            }
 
             String imgKey = "wall";
             Color color = Color.DARK_GRAY;
@@ -375,7 +378,12 @@ public class GameDrawingPanel extends JPanel {
                 g.setColor(color.darker());
                 g.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             }
-            drawImageOrRect(g, imgKey, color, px, drawY, TILE_SIZE, TILE_SIZE);
+            if (imgKey.equals("station_trash")){
+                drawImageOrRect(g, imgKey, color, px + 3, drawY, TILE_SIZE - 12, TILE_SIZE);
+            }
+            else {
+                drawImageOrRect(g, imgKey, color, px, drawY, TILE_SIZE, TILE_SIZE);
+            }
             drawStationDetails(g, tile, px, drawY);
             
             // Progress bar Cutting/Washing (Progress Bar Station)
@@ -455,59 +463,108 @@ public class GameDrawingPanel extends JPanel {
         }
     }
 
-    // --- REVISI SPRINT 2: DRAW CHEF SMOOTH (Arah & Aksi) ---
+// --- REVISI SPRINT 2: DRAW CHEF SMOOTH (Arah & Aksi Dinamis) ---
     private void drawChefSmooth(Graphics2D g, Chef chef) {
         int x = (int) (chef.getWorldX() * TILE_SIZE);
         int y = (int) (chef.getWorldY() * TILE_SIZE);
         int drawY = y - 5; 
         final int HELD_ITEM_SIZE = 30; 
         
-        // 1. Tentukan Sprite Key Chef (termasuk Busy State)
-        String chefKey = "chef_default";
-        long time = System.currentTimeMillis();
-        int frame = (int)(time / 150) % 2; // Ganti frame setiap 150ms
+        // 1. AMBIL IDENTITAS CHEF (fox / raccoon)
+        // Pastikan Anda sudah update Chef.java sesuai Langkah 1 di atas!
+        String prefix = chef.getTexturePrefix(); 
+        
+        // Default Key (misal: "fox_down" atau "raccoon_down")
+        String chefKey = prefix + "_down"; 
 
+        // Hitung Frame Animasi
+        long time = System.currentTimeMillis();
+        int frame = (int) ((time / 150) % 2);
+        if (frame < 0) frame = -frame;
+
+        // 2. LOGIKA ANIMASI BERBASIS PREFIX
         if (chef.isBusy()) {
             Tile facingTile = chef.getFacingTile(model.getMap());
             if (facingTile != null && facingTile.getStation() != null) {
                 Station s = facingTile.getStation();
                 
                 if (s instanceof CuttingStation) {
-                    chefKey = "chef_chopping_" + frame; 
+                    // Hasil: "fox_chopping_0" / "raccoon_chopping_0"
+                    chefKey = prefix + "_chopping_" + frame; 
                 } else if (s instanceof WashingStation) {
-                    chefKey = "chef_washing_" + frame; 
+                    // Hasil: "fox_washing_0" / "raccoon_washing_0"
+                    chefKey = prefix + "_washing_" + frame; 
                 }
             }
         } else {
-            // Logika 4 Arah Visual Normal (Up/Down/Left/Right)
+            // Logika 4 Arah Visual Normal
             double dirX = chef.getLastDirX();
             double dirY = chef.getLastDirY();
             
             if (dirX != 0 || dirY != 0) {
                 if (Math.abs(dirX) > Math.abs(dirY)) {
-                    chefKey = (dirX > 0) ? "chef_right" : "chef_left";
+                    // Hasil: "fox_right" atau "fox_left"
+                    chefKey = (dirX > 0) ? prefix + "_right" : prefix + "_left";
                 } else {
-                    chefKey = (dirY > 0) ? "chef_down" : "chef_up";
+                    // Hasil: "fox_down" atau "fox_up"
+                    chefKey = (dirY > 0) ? prefix + "_down" : prefix + "_up";
                 }
             } 
-            // Jika diam, biarkan chefKey tetap "chef_default"
+            // Jika diam, chefKey tetap prefix + "_down"
         }
 
-        // 2. Gambar Chef (dengan highlight jika aktif)
+        // 3. GAMBAR PENUNJUK (Segitiga di atas kepala) jika aktif
         if (chef == model.getActiveChef()) {
-            g.setColor(new Color(255, 255, 0, 100)); // Highlight kuning
-            g.fillOval(x, y + 10, TILE_SIZE, TILE_SIZE / 3);
+            // --- KONFIGURASI UKURAN ---
+            int pointerHeight = 15; // Tinggi segitiga
+            int pointerBase = 20;   // Lebar alas segitiga
+            int marginAbove = 10;   // Jarak melayang di atas kepala chef
+
+            // --- HITUNG KOORDINAT TITIK SEGITIGA ---
+            // Titik Pusat Horizontal Chef
+            int centerX = x + (TILE_SIZE / 2);
+            
+            // Posisi Y alas segitiga (di atas kepala)
+            int baseY = y - marginAbove + 80; 
+            
+            // Posisi Y puncak segitiga (lebih ke atas lagi)
+            int topY = baseY - pointerHeight;
+
+            // Membuat objek Polygon untuk segitiga (Mengarah ke Atas ^)
+            Polygon triangle = new Polygon();
+            triangle.addPoint(centerX, topY);                   // Puncak
+            triangle.addPoint(centerX + (pointerBase / 2), baseY); // Kanan Bawah
+            triangle.addPoint(centerX - (pointerBase / 2), baseY); // Kiri Bawah
+
+            // --- GAMBAR (FILL & OUTLINE) ---
+            Stroke oldStroke = g.getStroke();
+
+            // Isi warna segitiga (Kuning Terang)
+            g.setColor(Color.YELLOW);
+            g.fillPolygon(triangle);
+
+            // Garis pinggir (Hitam)
+            g.setStroke(new BasicStroke(2)); 
+            g.setColor(Color.BLACK);
+            g.drawPolygon(triangle);
+
+            g.setStroke(oldStroke);
         }
         
-        drawImageOrRect(g, chefKey, Color.GREEN, x + 5, drawY, TILE_SIZE - 10, TILE_SIZE - 10);
+        // 4. GAMBAR CHEF
+        // Menggunakan chefKey yang sudah dinamis (fox_... atau raccoon_...)
+        drawImageOrRect(g, chefKey, Color.GREEN, x + 5, drawY - 10, TILE_SIZE - 10, TILE_SIZE + 10);
         
-        // 3. Gambar Item yang dipegang
+        // 5. GAMBAR ITEM YANG DIPEGANG
         if (!chef.getInventory().isEmpty()) {
-            if (chef.getInventory().getItem() instanceof BoilingPot){
-                drawItem(g, chef.getInventory().getItem(), x + 10, drawY - 8, HELD_ITEM_SIZE);
+            Item item = chef.getInventory().getItem();
+            
+            // Penyesuaian posisi item sedikit jika sedang bawa panci vs bahan biasa
+            if (item instanceof BoilingPot){
+                drawItem(g, item, x + 10, drawY - 8, HELD_ITEM_SIZE);
             }
             else {
-                drawItem(g, chef.getInventory().getItem(), x + 10, drawY - 20, HELD_ITEM_SIZE);
+                drawItem(g, item, x + 10, drawY - 20, HELD_ITEM_SIZE);
             }
         }
     }
