@@ -142,37 +142,55 @@ public abstract class KitchenUtensil extends Item implements CookingDevice {
     public void moveContentsTo(Plate targetPlate) {
         if (targetPlate == null) return;
         
-        if (!contents.isEmpty()) {
-            Preparable item = contents.get(0);
+        // Cek apakah panci/wajan kosong
+        if (contents.isEmpty()) return;
             
-            if (item instanceof Ingredient) {
-                Ingredient ing = (Ingredient) item;
+        Preparable item = contents.get(0);
+        
+        if (item instanceof Ingredient) {
+            Ingredient ing = (Ingredient) item;
+            
+            // 1. VALIDASI COOKING PROCESS
+            // Jika masih dimasak (belum 100%), jangan boleh diambil
+            if (isCooking && cookingProgress < 100) {
+                System.out.println("Cannot scoop: Food is still cooking.");
+                return; 
+            }
+            
+            // 2. VALIDASI STATE (RAW)
+            // Jika masih mentah (belum COOKED dan belum BURNED), jangan boleh diambil
+            if (!(ing.getState() instanceof CookedState) && !(ing.getState() instanceof BurnedState)) {
+                    System.out.println("Cannot scoop: Food is raw.");
+                    return;
+            }
+            
+            // 3. VALIDASI BURNED (Gosong)
+            // Makanan gosong biasanya tidak bisa ditaruh di piring (harus dibuang ke tong sampah)
+            if (ing.getState() instanceof BurnedState) {
+                System.out.println("Cannot move burned ingredient to plate. Throw it in trash!");
+                return; // Jangan clearContents(), biarkan pemain membuangnya manual (huruf F)
+            }
+
+            // 4. VALIDASI PIRING (INI BAGIAN TERPENTING!)
+            // Cek dulu: Apakah piring BERSIH? DAN Apakah piring MUAT?
+            if (targetPlate.isClean() && targetPlate.canAccept(ing)) {
                 
-                // REVISI VALIDASI:
-                // 1. Jika masih status "Cooking" (belum matang), TOLAK.
-                if (isCooking && cookingProgress < 100) {
-                    System.out.println("Cannot scoop ingredient while cooking (not cooked yet).");
-                    return; // Jangan lakukan apa-apa
-                }
+                // A. Pindahkan ke Piring
+                targetPlate.addIngredient(ing);
                 
-                // 2. Jika status item belum COOKED dan belum BURNED, TOLAK.
-                if (!(ing.getState() instanceof CookedState) && !(ing.getState() instanceof BurnedState)) {
-                     System.out.println("Cannot scoop raw/cooking ingredient.");
-                     return;
-                }
+                // B. Hapus dari Panci (Hanya jika langkah A sukses)
+                this.clearContents(); 
                 
-                // Jika lolos (sudah COOKED atau BURNED), baru boleh dipindah
-                if (!(ing.getState() instanceof BurnedState)) {
-                    targetPlate.addIngredient(ing);
-                    this.clearContents(); 
-                } else {
-                    String itemName = (ing instanceof Item) ? ((Item) ing).getName() : "Ingredient";
-                    System.out.println("Cannot move burned ingredient (" + itemName + ") to plate. Must dispose.");
-                    // Opsional: Anda bisa membiarkan user mengambil burnt item untuk dibuang ke tempat sampah
-                    // Tapi spek Anda bilang "menolak bahan cooking", jadi blok di atas sudah cukup.
-                }
+                // C. Reset status masak panci
+                this.stopCooking(); 
+                
+                System.out.println("Success: Moved food to plate.");
+                
+            } else {
+                // JIKA PIRING KOTOR / PENUH
+                System.out.println("Failed: Plate is dirty or full. Keeping food in pan.");
+                // KARENA KITA TIDAK MEMANGGIL clearContents(), MAKANAN AMAN DI PANCI
             }
         }
-        this.stopCooking(); 
     }
 }

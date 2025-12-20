@@ -379,7 +379,7 @@ public class GameDrawingPanel extends JPanel {
                 g.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             }
             if (imgKey.equals("station_trash")){
-                drawImageOrRect(g, imgKey, color, px + 3, drawY, TILE_SIZE - 12, TILE_SIZE);
+                drawImageOrRect(g, imgKey, color, px + 5, drawY, TILE_SIZE - 12, TILE_SIZE);
             }
             else {
                 drawImageOrRect(g, imgKey, color, px, drawY, TILE_SIZE, TILE_SIZE);
@@ -467,7 +467,7 @@ public class GameDrawingPanel extends JPanel {
     private void drawChefSmooth(Graphics2D g, Chef chef) {
         int x = (int) (chef.getWorldX() * TILE_SIZE);
         int y = (int) (chef.getWorldY() * TILE_SIZE);
-        int drawY = y - 5; 
+        int drawY = y - 15; 
         final int HELD_ITEM_SIZE = 30; 
         
         // 1. AMBIL IDENTITAS CHEF (fox / raccoon)
@@ -525,7 +525,7 @@ public class GameDrawingPanel extends JPanel {
             int centerX = x + (TILE_SIZE / 2);
             
             // Posisi Y alas segitiga (di atas kepala)
-            int baseY = y - marginAbove + 80; 
+            int baseY = y - marginAbove + 70; 
             
             // Posisi Y puncak segitiga (lebih ke atas lagi)
             int topY = baseY - pointerHeight;

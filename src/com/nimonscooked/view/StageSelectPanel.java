@@ -175,7 +175,7 @@ public class StageSelectPanel extends JPanel {
         BufferedImage icon = assets.getImage(iconKey);
         
         if (icon != null) {
-            g2d.drawImage(icon, iconX, iconY, iconSize, iconSize, null);
+            g2d.drawImage(icon, iconX - 10, iconY + 15, iconSize, iconSize, null);
         } else {
             g2d.setColor(textColor);
             if (iconKey.endsWith("_o")) g2d.drawOval(iconX, iconY, iconSize, iconSize);
